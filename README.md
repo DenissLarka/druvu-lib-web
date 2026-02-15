@@ -1,6 +1,6 @@
 # druvu-lib-web
 
-A lightweight Java web framework built on Jetty. Define handlers, add auth, pick a template engine — your app is running in under 20 lines.
+A lightweight Java web framework built on Jetty. Define handlers, add auth — your app is running in under 20 lines.
 
 > [!NOTE]
 > **About the PHP template engine** — Yes, this is a PHP implementation in Java. It is not meant to be a full PHP runtime — it covers simple web layout tasks like includes, string expressions, and built-in helper functions. If you need additional PHP functionality supported, I'd love to hear about it! Feel free to [open an issue](../../issues) with your use case or feature request.
