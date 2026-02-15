@@ -1,4 +1,4 @@
-module druvu.lib.web.api {
+module com.druvu.lib.web.api {
 	// Compile-time only
 	requires static lombok;
 	requires static com.github.spotbugs.annotations;

@@ -1,8 +1,8 @@
-module druvu.lib.web.php {
+module com.druvu.lib.web.php {
 	requires static lombok;
 	requires static com.github.spotbugs.annotations;
 
-	requires druvu.lib.web.api;
+	requires com.druvu.lib.web.api;
 	requires druvu.lib.loader;
 	requires org.eclipse.jetty.ee10.servlet;
 	requires org.slf4j;

@@ -1,10 +1,10 @@
-module druvu.lib.web.core {
+module com.druvu.lib.web.core {
 	// Compile-time only
 	requires static lombok;
 	requires static com.github.spotbugs.annotations;
 
 	// API module (transitive for users)
-	requires transitive druvu.lib.web.api;
+	requires transitive com.druvu.lib.web.api;
 
 	// Runtime dependencies
 	requires druvu.lib.loader;
