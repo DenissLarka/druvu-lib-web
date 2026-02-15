@@ -5,10 +5,12 @@
 
 	<groupId>com.druvu</groupId>
 	<artifactId>druvu-lib-web</artifactId>
-	<version>1.0.0-SNAPSHOT</version>
+	<version>1.0.0</version>
 	<packaging>pom</packaging>
 
 	<name>DRUVU.COM / LIB</name>
+	<description>Lightweight embedded web framework built on Jetty</description>
+	<url>https://github.com/DenissLarka/druvu-lib-web</url>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -28,6 +30,14 @@
 		<developerConnection>scm:git:https://github.com/DenissLarka/druvu-lib-web</developerConnection>
 		<tag>HEAD</tag>
 	</scm>
+
+	<distributionManagement>
+		<repository>
+			<id>github</id>
+			<name>GitHub Packages</name>
+			<url>https://maven.pkg.github.com/DenissLarka/druvu-lib-web/</url>
+		</repository>
+	</distributionManagement>
 
 	<repositories>
 		<repository>
