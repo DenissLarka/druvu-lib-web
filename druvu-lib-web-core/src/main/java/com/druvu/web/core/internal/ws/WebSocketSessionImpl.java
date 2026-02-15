@@ -97,7 +97,7 @@ public class WebSocketSessionImpl implements WebSocketHandler.Session {
 		sess.sendPing(PING, Callback.NOOP);
 	}
 
-	void demand() {
+	public void demand() {
 		sess.demand();
 	}
 

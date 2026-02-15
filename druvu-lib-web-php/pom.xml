@@ -43,22 +43,6 @@
 			</exclusions>
 		</dependency>
 
-		<!-- WebJar Asset Locator (for webjar() function) -->
-		<dependency>
-			<groupId>org.webjars</groupId>
-			<artifactId>webjars-locator</artifactId>
-			<version>0.52</version>
-			<exclusions>
-				<exclusion>
-					<groupId>com.fasterxml.jackson.core</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
 
 		<!-- spotbugs-annotations (used by lombok generated code) -->
 		<dependency>

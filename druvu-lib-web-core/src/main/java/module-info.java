@@ -28,6 +28,10 @@ module druvu.lib.web.core {
 	// Open for reflection (Jetty needs this)
 	opens com.druvu.web.core.internal to org.eclipse.jetty.ee10.servlet;
 
+	// Jetty WebSocket uses MethodHandles.publicLookup().in(endpointClass) for
+	// Session.Listener endpoints — this requires the package to be exported, not just opened
+	exports com.druvu.web.core.ws;
+
 	// Use plugin factories
 	uses com.druvu.lib.loader.ComponentFactory;
 }

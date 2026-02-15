@@ -1,7 +1,6 @@
 package com.druvu.web.example;
 
 import com.druvu.web.example.handlers.*;
-import org.slf4j.simple.SimpleLogger;
 
 import com.druvu.web.api.auth.AuthConfig;
 import com.druvu.web.core.WebBoot;
@@ -41,6 +40,6 @@ public final class WebBootExample {
 	}
 
 	private static void logConfig() {
-		System.setProperty(SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "INFO");
+		System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "INFO");
 	}
 }

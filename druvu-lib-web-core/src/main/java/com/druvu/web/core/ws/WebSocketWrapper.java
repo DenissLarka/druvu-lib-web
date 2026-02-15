@@ -1,4 +1,4 @@
-package com.druvu.web.core.internal.ws;
+package com.druvu.web.core.ws;
 
 import java.lang.reflect.Type;
 import java.util.Collections;
@@ -12,6 +12,7 @@ import org.eclipse.jetty.websocket.api.Session;
 
 import com.druvu.web.api.handlers.HttpRequest;
 import com.druvu.web.api.handlers.WebSocketHandler;
+import com.druvu.web.core.internal.ws.WebSocketSessionImpl;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParseException;

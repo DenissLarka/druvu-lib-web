@@ -95,6 +95,22 @@
 					</properties>
 				</configuration>
 			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<version>3.5.0</version>
+				<configuration>
+					<executable>java</executable>
+					<arguments>
+						<argument>--module-path</argument>
+						<modulepath/>
+						<argument>--add-modules</argument>
+						<argument>ALL-MODULE-PATH</argument>
+						<argument>--module</argument>
+						<argument>com.druvu.web.example/com.druvu.web.example.WebBootExample</argument>
+					</arguments>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
 

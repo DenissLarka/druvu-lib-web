@@ -6,7 +6,6 @@ module druvu.lib.web.php {
 	requires druvu.lib.loader;
 	requires org.eclipse.jetty.ee10.servlet;
 	requires org.slf4j;
-	requires webjars.locator.core;
 
 	// Export plugin API
 	exports com.druvu.web.php;

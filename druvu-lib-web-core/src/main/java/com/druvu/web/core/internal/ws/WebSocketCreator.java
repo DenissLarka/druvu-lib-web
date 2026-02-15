@@ -14,6 +14,7 @@ import com.druvu.web.api.handlers.WebSocketHandler;
 import com.druvu.web.core.handlers.HttpCall;
 import com.druvu.web.core.internal.ContextVars;
 import com.druvu.web.core.internal.HandlerUtils;
+import com.druvu.web.core.ws.WebSocketWrapper;
 
 import lombok.extern.slf4j.Slf4j;
 
