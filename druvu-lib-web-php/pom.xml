@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+		 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+		 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>com.druvu</groupId>
+		<artifactId>druvu-lib-web</artifactId>
+		<version>1.0.0-SNAPSHOT</version>
+	</parent>
+
+	<artifactId>druvu-lib-web-php</artifactId>
+	<name>DRUVU.COM / LIB / WEB / PHP</name>
+	<description>PHP template engine plugin for druvu-lib-web</description>
+
+	<dependencies>
+		<!-- API module -->
+		<dependency>
+			<groupId>com.druvu</groupId>
+			<artifactId>druvu-lib-web-api</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<!-- druvu-lib-loader -->
+		<dependency>
+			<groupId>com.druvu</groupId>
+			<artifactId>druvu-lib-loader</artifactId>
+			<version>${druvu-lib-loader.version}</version>
+		</dependency>
+
+		<!-- Jetty Servlet (for ServletContextHandler) -->
+		<dependency>
+			<groupId>org.eclipse.jetty.ee10</groupId>
+			<artifactId>jetty-ee10-servlet</artifactId>
+			<version>${jetty.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+
+		<!-- WebJar Asset Locator (for webjar() function) -->
+		<dependency>
+			<groupId>org.webjars</groupId>
+			<artifactId>webjars-locator</artifactId>
+			<version>0.52</version>
+			<exclusions>
+				<exclusion>
+					<groupId>com.fasterxml.jackson.core</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+
+		<!-- spotbugs-annotations (used by lombok generated code) -->
+		<dependency>
+			<groupId>com.github.spotbugs</groupId>
+			<artifactId>spotbugs-annotations</artifactId>
+			<version>4.9.8</version>
+			<scope>provided</scope>
+		</dependency>
+
+	</dependencies>
+
+</project>

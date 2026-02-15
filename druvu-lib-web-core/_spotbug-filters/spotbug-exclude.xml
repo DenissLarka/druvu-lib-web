@@ -1,0 +1,23 @@
+<FindBugsFilter>
+	<Match>
+		<Annotation name="lombok.Generated"/>
+	</Match>
+	<!-- Framework classes intentionally hold and expose references to request/response/session objects -->
+	<Match>
+		<Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+	</Match>
+	<!-- GlobalAttributesImpl.from() intentionally hides Attributes.from() with a narrower return type -->
+	<Match>
+		<Class name="com.druvu.web.core.handlers.attr.GlobalAttributesImpl"/>
+		<Bug pattern="HSM_HIDING_METHOD"/>
+	</Match>
+	<!-- Constructor validation via Objects.requireNonNull is intentional; these are not finalizer-vulnerable -->
+	<Match>
+		<Class name="com.druvu.web.core.auth.AuthUserIdentityImpl"/>
+		<Bug pattern="CT_CONSTRUCTOR_THROW"/>
+	</Match>
+	<Match>
+		<Class name="com.druvu.web.core.auth.JettyAuthAdapter"/>
+		<Bug pattern="CT_CONSTRUCTOR_THROW"/>
+	</Match>
+</FindBugsFilter>

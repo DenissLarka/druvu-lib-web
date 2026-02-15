@@ -1,0 +1,27 @@
+<FindBugsFilter>
+	<Match>
+		<Annotation name="lombok.Generated"/>
+	</Match>
+
+	<!-- Internal classes intentionally expose mutable state for internal plumbing -->
+	<Match>
+		<Package name="com.druvu.web.php.internal"/>
+		<Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+	</Match>
+	<Match>
+		<Package name="com.druvu.web.php.internal.expr"/>
+		<Bug pattern="EI_EXPOSE_REP2"/>
+	</Match>
+
+	<!-- HttpServlet implements Serializable but servlets are never serialized -->
+	<Match>
+		<Class name="com.druvu.web.php.internal.PhpServlet"/>
+		<Bug pattern="SE_BAD_FIELD"/>
+	</Match>
+
+	<!-- TestNG @BeforeMethod initializes fields before each test -->
+	<Match>
+		<Class name="~.*\.Test.*"/>
+		<Bug pattern="UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"/>
+	</Match>
+</FindBugsFilter>

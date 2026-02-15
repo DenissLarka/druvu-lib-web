@@ -1,0 +1,9 @@
+<FindBugsFilter>
+	<Match>
+		<Annotation name="lombok.Generated"/>
+	</Match>
+	<Match>
+		<Class name="com.druvu.web.api.handlers.HttpCall"/>
+		<Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+	</Match>
+</FindBugsFilter>

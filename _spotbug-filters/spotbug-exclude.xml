@@ -1,0 +1,5 @@
+<FindBugsFilter>
+	<Match>
+		<Annotation name="lombok.Generated"/>
+	</Match>
+</FindBugsFilter>
