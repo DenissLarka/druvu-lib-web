@@ -45,24 +45,7 @@ public class DashboardHandler implements HttpHandler {
 
 ## Quick Start
 
-### 1. Add dependencies
-
-```xml
-<dependency>
-    <groupId>com.druvu</groupId>
-    <artifactId>druvu-lib-web-core</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
-</dependency>
-<!-- PHP template engine (loaded automatically via ServiceLoader) -->
-<dependency>
-    <groupId>com.druvu</groupId>
-    <artifactId>druvu-lib-web-php</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
-    <scope>runtime</scope>
-</dependency>
-```
-
-### 2. Create a handler
+### 1. Create a handler
 
 ```java
 public class HomeHandler implements HttpHandler {
@@ -74,7 +57,7 @@ public class HomeHandler implements HttpHandler {
 }
 ```
 
-### 3. Create a template
+### 2. Create a template
 
 Place `home.php` in `src/main/resources/webapp/`:
 
@@ -87,7 +70,7 @@ Place `home.php` in `src/main/resources/webapp/`:
 </html>
 ```
 
-### 4. Boot the server
+### 3. Boot the server
 
 ```java
 WebBoot boot = new WebBoot(WebConfig.builder()
@@ -277,8 +260,8 @@ AuthConfig.builder()
 Permissions are defined when registering handlers:
 
 ```java
-.urlConfig(UrlConfig.from(PublicHandler.class))                        // no auth required
-.urlConfig(UrlConfig.from(UserHandler.class, "user:read"))             // requires user:read
+.urlConfig(UrlConfig.from(PublicHandler.class)) // no auth required
+.urlConfig(UrlConfig.from(UserHandler.class, "user:read")) // requires user:read
 .urlConfig(UrlConfig.from(AdminHandler.class, "admin:all", "user:read")) // requires both
 ```
 
@@ -501,6 +484,56 @@ druvu-lib-web-parent/
 | Asset Management | WebJars + WebJarAssetLocator                 |
 | Plugin Discovery | ServiceLoader (via druvu-lib-loader)         |
 | Testing          | TestNG                                       |
+
+---
+
+## Installation
+
+This library is published to **GitHub Packages**.
+
+### 1. Generate a GitHub Personal Access Token
+
+Go to [GitHub Settings > Developer settings > Personal access tokens](https://github.com/settings/tokens) and create a token with the `read:packages` scope.
+
+### 2. Add the server to `~/.m2/settings.xml`
+
+```xml
+<settings>
+  <servers>
+    <server>
+      <id>github</id>
+      <username>YOUR_GITHUB_USERNAME</username>
+      <password>YOUR_GITHUB_TOKEN</password>
+    </server>
+  </servers>
+</settings>
+```
+
+### 3. Add the repository and dependencies to your project `pom.xml`
+
+```xml
+<repositories>
+    <repository>
+        <id>github</id>
+        <url>https://maven.pkg.github.com/DenissLarka/druvu-lib-web</url>
+    </repository>
+</repositories>
+```
+
+```xml
+<dependency>
+    <groupId>com.druvu</groupId>
+    <artifactId>druvu-lib-web-core</artifactId>
+    <version>1.0.0</version>
+</dependency>
+<!-- PHP template engine (loaded automatically via ServiceLoader) -->
+<dependency>
+    <groupId>com.druvu</groupId>
+    <artifactId>druvu-lib-web-php</artifactId>
+    <version>1.0.0</version>
+    <scope>runtime</scope>
+</dependency>
+```
 
 ---
 
