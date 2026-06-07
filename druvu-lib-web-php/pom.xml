@@ -30,6 +30,13 @@
 			<version>${druvu-lib-loader.version}</version>
 		</dependency>
 
+		<!-- slf4j-api (logging facade; loader no longer leaks it transitively) -->
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>${slf4j.version}</version>
+		</dependency>
+
 		<!-- Jetty Servlet (for ServletContextHandler) -->
 		<dependency>
 			<groupId>org.eclipse.jetty.ee10</groupId>

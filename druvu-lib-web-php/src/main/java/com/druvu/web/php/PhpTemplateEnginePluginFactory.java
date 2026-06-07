@@ -18,7 +18,7 @@ public class PhpTemplateEnginePluginFactory implements ComponentFactory<Template
 	}
 
 	@Override
-	public Class<TemplateEnginePlugin> getComponentType() {
+	public Class<TemplateEnginePlugin> type() {
 		return TemplateEnginePlugin.class;
 	}
 }

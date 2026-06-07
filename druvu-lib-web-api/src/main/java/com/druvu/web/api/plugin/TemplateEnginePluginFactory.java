@@ -11,7 +11,7 @@ import com.druvu.lib.loader.ComponentFactory;
 public interface TemplateEnginePluginFactory extends ComponentFactory<TemplateEnginePlugin> {
 
 	@Override
-	default Class<TemplateEnginePlugin> getComponentType() {
+	default Class<TemplateEnginePlugin> type() {
 		return TemplateEnginePlugin.class;
 	}
 }

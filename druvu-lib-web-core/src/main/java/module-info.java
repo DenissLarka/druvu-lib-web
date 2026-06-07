@@ -7,7 +7,7 @@ module com.druvu.lib.web.core {
 	requires transitive com.druvu.lib.web.api;
 
 	// Runtime dependencies
-	requires druvu.lib.loader;
+	requires com.druvu.lib.loader;
 	requires org.eclipse.jetty.ee10.servlet;
 	requires org.eclipse.jetty.ee10.websocket.jetty.server;
 	requires org.eclipse.jetty.http;

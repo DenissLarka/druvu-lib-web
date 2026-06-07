@@ -5,7 +5,7 @@ module com.druvu.lib.web.api {
 	requires static org.slf4j;
 
 	// Runtime dependencies
-	requires transitive druvu.lib.loader;
+	requires transitive com.druvu.lib.loader;
 	requires transitive jakarta.servlet;
 
 

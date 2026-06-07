@@ -3,7 +3,7 @@ module com.druvu.lib.web.php {
 	requires static com.github.spotbugs.annotations;
 
 	requires com.druvu.lib.web.api;
-	requires druvu.lib.loader;
+	requires com.druvu.lib.loader;
 	requires org.eclipse.jetty.ee10.servlet;
 	requires org.slf4j;
 
