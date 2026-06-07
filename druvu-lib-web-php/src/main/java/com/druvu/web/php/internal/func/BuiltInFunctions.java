@@ -1,6 +1,7 @@
 package com.druvu.web.php.internal.func;
 
 import java.io.IOException;
+import java.net.JarURLConnection;
 import java.net.URL;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -66,10 +67,15 @@ public class BuiltInFunctions {
 			Enumeration<URL> urls = cl.getResources("META-INF/resources/webjars");
 			while (urls.hasMoreElements()) {
 				URL url = urls.nextElement();
-				if ("jar".equals(url.getProtocol())) {
-					String urlStr = url.toExternalForm();
-					String jarPath = urlStr.substring("jar:file:".length(), urlStr.indexOf("!/"));
-					scanJar(jarPath, index);
+				// Resolve the JarFile through the URL connection rather than parsing the URL
+				// string. This works both for plain `jar:file:` URLs and for the `jar:nested:`
+				// URLs that executable jars (e.g. Spring Boot fat jars) use for bundled webjars,
+				// where the old `jar:file:` substring parsing produced an invalid path.
+				if (url.openConnection() instanceof JarURLConnection jarConnection) {
+					jarConnection.setUseCaches(false);
+					try (JarFile jar = jarConnection.getJarFile()) {
+						scanJar(jar, index);
+					}
 				}
 			}
 		} catch (IOException ignored) {
@@ -78,16 +84,14 @@ public class BuiltInFunctions {
 		return index;
 	}
 
-	private static void scanJar(String jarPath, Map<String, String> index) throws IOException {
-		try (JarFile jar = new JarFile(jarPath)) {
-			jar.stream()
-				.filter(e -> !e.isDirectory() && e.getName().startsWith(WEBJARS_PREFIX))
-				.forEach(e -> {
-					String name = e.getName();
-					String relativePath = name.substring(RESOURCES_PREFIX.length());
-					String fileName = name.substring(name.lastIndexOf('/') + 1);
-					index.putIfAbsent(fileName, relativePath);
-				});
-		}
+	private static void scanJar(JarFile jar, Map<String, String> index) {
+		jar.stream()
+			.filter(e -> !e.isDirectory() && e.getName().startsWith(WEBJARS_PREFIX))
+			.forEach(e -> {
+				String name = e.getName();
+				String relativePath = name.substring(RESOURCES_PREFIX.length());
+				String fileName = name.substring(name.lastIndexOf('/') + 1);
+				index.putIfAbsent(fileName, relativePath);
+			});
 	}
 }

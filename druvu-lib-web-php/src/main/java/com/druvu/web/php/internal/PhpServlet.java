@@ -101,10 +101,19 @@ public class PhpServlet extends HttpServlet {
 	private String loadPhpFile(HttpServletRequest req, String path) throws IOException {
 		InputStream is = req.getServletContext().getResourceAsStream(path);
 		if (is == null) {
+			// Fat-jar / embedded-jar fallback: when this library runs inside an executable
+			// jar (e.g. a Spring Boot app), webapp templates live on the classpath under
+			// webapp/ (BOOT-INF/classes/webapp/... in a Spring Boot jar), where the servlet
+			// container's getResourceAsStream may not resolve the nested-jar entry. Load via
+			// the classloader, mirroring how the core RcUtils resolves webapp resources.
+			String resource = "webapp" + (path.startsWith("/") ? path : "/" + path);
+			is = Thread.currentThread().getContextClassLoader().getResourceAsStream(resource);
+		}
+		if (is == null) {
 			return null;
 		}
-		try (is) {
-			return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+		try (InputStream stream = is) {
+			return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
 		}
 	}
 }

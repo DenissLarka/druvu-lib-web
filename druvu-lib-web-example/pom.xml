@@ -15,6 +15,7 @@
 
 	<properties>
 		<maven.deploy.skip>true</maven.deploy.skip>
+		<spring-boot.version>4.0.0</spring-boot.version>
 	</properties>
 
 	<dependencies>
@@ -95,6 +96,32 @@
 						</property>
 					</properties>
 				</configuration>
+			</plugin>
+			<!--
+				EXPERIMENT: package this example as a Spring-Boot-style executable uber jar.
+				The spring-boot-maven-plugin's repackage goal works on any application (no Spring
+				dependency in the app itself): it rewrites the jar into the nested layout
+				(BOOT-INF/classes + BOOT-INF/lib/*.jar) with a spring-boot-loader launcher as
+				Main-Class that delegates to Start-Class. Produces target/druvu-lib-web-example-*.jar
+				runnable via `java -jar`; the original thin jar is kept alongside as *.jar.original.
+				Note: this drops JPMS — the app runs on the classpath (unnamed module). Plugin
+				discovery still works via the META-INF/services file in druvu-lib-web-php.
+			-->
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<version>${spring-boot.version}</version>
+				<executions>
+					<execution>
+						<id>uber-jar</id>
+						<goals>
+							<goal>repackage</goal>
+						</goals>
+						<configuration>
+							<mainClass>com.druvu.web.example.WebBootExample</mainClass>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>

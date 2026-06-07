@@ -1,5 +1,6 @@
 package com.druvu.web.core.internal;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -25,6 +26,18 @@ public class ContextCreator {
 		ServletContextHandler webappContext = new ServletContextHandler(contextPath, ServletContextHandler.NO_SESSIONS);
 		ResourcesSetup resourcesSetup = new ResourcesSetup(webConfig.serveFromDirectory());
 		webappContext.setBaseResource(resourcesSetup.call());
+
+		// When this library is packaged inside an executable jar (e.g. a Spring Boot
+		// fat jar), the webapp/static/webjar resources are exposed via `jar:nested:` URLs
+		// whose real URI is null. Jetty's alias guard then flags the base resource as an
+		// alias and refuses to serve any static content. Permit aliases that resolve inside
+		// a jar (bundled, tamper-bounded resources) while leaving on-disk alias protection
+		// (symlink/case-insensitivity tricks) untouched for exploded deployments.
+		webappContext.addAliasCheck((pathInContext, resource) -> {
+			URI uri = resource.getURI();
+			return uri != null && "jar".equals(uri.getScheme());
+		});
+
 		webappContext.setErrorHandler(new CustomErrorHandler());
 
 		// Core servlets
