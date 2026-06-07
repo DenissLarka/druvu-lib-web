@@ -1,5 +1,7 @@
 # druvu-lib-web
 
+[![CI](https://github.com/DenissLarka/druvu-lib-web/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/DenissLarka/druvu-lib-web/actions/workflows/ci.yml)
+
 A lightweight Java web framework built on Jetty. Define handlers, add auth — your app is running in under 20 lines.
 
 > [!NOTE]
