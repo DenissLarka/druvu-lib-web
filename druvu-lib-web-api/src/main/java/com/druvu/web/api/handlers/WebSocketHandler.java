@@ -1,52 +1,45 @@
 package com.druvu.web.api.handlers;
 
+import com.druvu.web.api.auth.AuthUserIdentity;
+import com.druvu.web.api.config.UrlHandler;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import com.druvu.web.api.auth.AuthUserIdentity;
-import com.druvu.web.api.config.UrlHandler;
-
-/**
- * @author Deniss Larka
- * on 22 September 2023
- */
+/** @author Deniss Larka on 22 September 2023 */
 public interface WebSocketHandler extends UrlHandler {
 
-	interface Sessions {
+    interface Sessions {
 
-		Set<Session> all();
+        Set<Session> all();
+    }
 
-	}
+    interface Session {
 
-	interface Session {
+        String id();
 
-		String id();
+        void send(Map<String, String> map);
 
-		void send(Map<String, String> map);
+        void close();
 
-		void close();
+        boolean isOpen();
 
-		boolean isOpen();
+        HttpRequest request();
 
-		HttpRequest request();
+        Optional<AuthUserIdentity> user();
 
-		Optional<AuthUserIdentity> user();
+        void attribute(String key, Object value);
 
-		void attribute(String key, Object value);
+        <T> Optional<T> attribute(String key);
+    }
 
-		<T> Optional<T> attribute(String key);
+    default void onConnect(Session session, Sessions sessions) {
+        // no op
+    }
 
-	}
+    default void onClose(Session session, Sessions sessions) {
+        // no op
+    }
 
-	default void onConnect(Session session, Sessions sessions) {
-		// no op
-	}
-
-	default void onClose(Session session, Sessions sessions) {
-		// no op
-	}
-
-	void handle(Session session, Sessions sessions, Map<String, String> message);
-
+    void handle(Session session, Sessions sessions, Map<String, String> message);
 }

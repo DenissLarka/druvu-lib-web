@@ -2,41 +2,39 @@ package com.druvu.web.api.handlers;
 
 import com.druvu.web.api.auth.AuthUserIdentity;
 import jakarta.servlet.DispatcherType;
-
 import java.util.Optional;
 
 /**
  * Interface for HTTP request abstraction.
- * <p>
- * Provides access to request path, parameters, attributes, and user identity.
- * Implementations are created via factory methods in the core module.
  *
- * @author : Deniss Larka
- * on 08 June 2024
- **/
+ * <p>Provides access to request path, parameters, attributes, and user identity. Implementations are created via
+ * factory methods in the core module.
+ *
+ * @author : Deniss Larka on 08 June 2024
+ */
 public interface HttpRequest {
 
-	void setAttribute(String key, Object value);
+    void setAttribute(String key, Object value);
 
-	GlobalAttributes globalAttributes();
+    GlobalAttributes globalAttributes();
 
-	PathInfo pathInfo();
+    PathInfo pathInfo();
 
-	String contentType();
+    String contentType();
 
-	DispatcherType dispatcherType();
+    DispatcherType dispatcherType();
 
-	String method();
+    String method();
 
-	boolean isDispatcherTypeRequest();
+    boolean isDispatcherTypeRequest();
 
-	boolean isDispatcherTypeInclude();
+    boolean isDispatcherTypeInclude();
 
-	String mainPath();
+    String mainPath();
 
-	ParamInfo paramInfo();
+    ParamInfo paramInfo();
 
-	Object getAttribute(String attributeName);
+    Object getAttribute(String attributeName);
 
-	Optional<AuthUserIdentity> user();
+    Optional<AuthUserIdentity> user();
 }

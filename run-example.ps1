@@ -20,9 +20,19 @@ mvn -pl druvu-lib-web-example dependency:build-classpath "-Dmdep.outputFile=$tem
 $depClasspath = Get-Content $tempFile -Raw
 Remove-Item $tempFile
 
+# Locate the example jar by glob, not by a hard-coded version — the pom's version moves and a
+# literal here silently goes stale. Exclude the sources/javadoc jars the package phase also builds.
+$exampleJar = Get-ChildItem "druvu-lib-web-example/target/druvu-lib-web-example-*.jar" |
+	Where-Object { $_.Name -notmatch '-(sources|javadoc)\.jar$' } |
+	Select-Object -First 1
+if (-not $exampleJar) {
+	Write-Host "Example jar not found in druvu-lib-web-example/target" -ForegroundColor Red
+	exit 1
+}
+
 # Build module path using JARs
 $modulePath = @(
-	"druvu-lib-web-example/target/druvu-lib-web-example-1.0.0-SNAPSHOT.jar"
+	$exampleJar.FullName
 	$depClasspath.Trim()
 ) -join [System.IO.Path]::PathSeparator
 

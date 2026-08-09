@@ -1,6 +1,9 @@
 # druvu-lib-web
 
 [![CI](https://github.com/DenissLarka/druvu-lib-web/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/DenissLarka/druvu-lib-web/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/DenissLarka/druvu-lib-web?label=GitHub%20Packages&color=blue)](https://github.com/DenissLarka/druvu-lib-web/packages)
+![Java](https://img.shields.io/badge/Java-25-blue)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
 A lightweight Java web framework built on Jetty. Define handlers, add auth — your app is running in under 20 lines.
 
