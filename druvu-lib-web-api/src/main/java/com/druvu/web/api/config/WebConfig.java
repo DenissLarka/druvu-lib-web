@@ -32,8 +32,5 @@ public class WebConfig {
     @Singular
     private final List<UrlConfig> urlConfigs;
 
-    @Builder.Default
-    private final String templateSystem = "php";
-
     private AuthConfig authConfig;
 }

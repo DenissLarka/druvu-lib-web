@@ -20,7 +20,11 @@
         box: '#main-toolbar',
         name: 'mainToolbar',
         items: [
-            { type: 'button', id: 'home',  text: 'Home',   icon: 'w2ui-icon-check' },
+            { type: 'button', id: 'home',   text: 'Home',   icon: 'w2ui-icon-check' },
+            { type: 'break' },
+            { type: 'button', id: 'basics', text: 'Basics', icon: 'w2ui-icon-pencil' },
+            { type: 'button', id: 'loops',  text: 'Loops',  icon: 'w2ui-icon-list' },
+            { type: 'button', id: 'data',   text: 'Data',   icon: 'w2ui-icon-folder' },
             { type: 'break' },
             { type: 'button', id: 'table', text: 'Table',  icon: 'w2ui-icon-columns' },
             { type: 'button', id: 'json',  text: 'JSON',   icon: 'w2ui-icon-info' },
@@ -30,7 +34,10 @@
         ],
         onClick(event) {
             const routes = {
-                home:  '<?= link('example') ?>',
+                home:   '<?= link('example') ?>',
+                basics: '<?= link('php-basics') ?>',
+                loops:  '<?= link('php-loops') ?>',
+                data:   '<?= link('php-data') ?>',
                 table: '<?= link('example-table') ?>',
                 json:  '<?= link('example-json') ?>',
                 ws:    '<?= link('example-socket') ?>'

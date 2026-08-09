@@ -22,12 +22,7 @@ public class ContextVars {
     public static final String HTTP_DEFAULT = "http_default_path";
     public static final String HTTP_SECURITY = "http_security";
     public static final String AUTH_CONFIG = "auth_config";
-    public static final String TEMPLATE_SYSTEM = "template_system";
     public static final String JETTY_AUTH = "jetty_auth_adapter";
-
-    public static String templateSystem(ServletContext context) {
-        return string(context, TEMPLATE_SYSTEM);
-    }
 
     public static final Map<String, UrlConfig> handlers(ServletContext context) {
         return map(context, HANDLERS);

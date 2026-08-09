@@ -21,17 +21,7 @@ public class PhpTemplateEnginePlugin implements TemplateEnginePlugin {
     }
 
     @Override
-    public String[] getSupportedExtensions() {
-        return new String[] {"php"};
-    }
-
-    @Override
     public String getName() {
         return "PHP Engine";
-    }
-
-    @Override
-    public int getPriority() {
-        return 50;
     }
 }

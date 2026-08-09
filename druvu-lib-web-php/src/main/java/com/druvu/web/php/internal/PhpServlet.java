@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,7 +67,7 @@ public class PhpServlet extends HttpServlet {
 
         String page;
         try {
-            page = engine.render(path, request, Map.of());
+            page = engine.render(path, request, RequestModel.from(request));
         } catch (PhpProcessingException failed) {
             // The detail is for whoever maintains the template, not for whoever requested the page.
             LOG.error("Rendering {} failed", path, failed);

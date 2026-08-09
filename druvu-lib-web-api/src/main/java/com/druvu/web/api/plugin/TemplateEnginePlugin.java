@@ -27,14 +27,6 @@ public interface TemplateEnginePlugin {
      */
     void registerServlet(Object handler);
 
-    /** @return file extensions this engine handles (e.g., ["jsp", "jspx"]) */
-    String[] getSupportedExtensions();
-
-    /** @return human-readable name for logging (e.g., "JSP Engine") */
+    /** @return human-readable name for logging (e.g., "PHP Engine") */
     String getName();
-
-    /** @return priority for extension conflict resolution (higher = preferred) */
-    default int getPriority() {
-        return 0;
-    }
 }

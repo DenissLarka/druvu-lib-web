@@ -1,6 +1,6 @@
 #!/usr/bin/env pwsh
-# Run WebBootExample with proper Java module environment
-# Usage: ./run-example.ps1
+# Run WebBootExample, the demo app for druvu-lib-web.
+# Usage: ./Start-Example.ps1
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
@@ -13,13 +13,6 @@ if ($LASTEXITCODE -ne 0) {
 	exit 1
 }
 
-# Get dependency classpath to a temp file
-Write-Host "Resolving dependencies..." -ForegroundColor Cyan
-$tempFile = [System.IO.Path]::GetTempFileName()
-mvn -pl druvu-lib-web-example dependency:build-classpath "-Dmdep.outputFile=$tempFile" -DincludeScope=runtime -q
-$depClasspath = Get-Content $tempFile -Raw
-Remove-Item $tempFile
-
 # Locate the example jar by glob, not by a hard-coded version — the pom's version moves and a
 # literal here silently goes stale. Exclude the sources/javadoc jars the package phase also builds.
 $exampleJar = Get-ChildItem "druvu-lib-web-example/target/druvu-lib-web-example-*.jar" |
@@ -30,18 +23,14 @@ if (-not $exampleJar) {
 	exit 1
 }
 
-# Build module path using JARs
-$modulePath = @(
-	$exampleJar.FullName
-	$depClasspath.Trim()
-) -join [System.IO.Path]::PathSeparator
-
-# Open browser after a short delay (background job)
+# The example module is repackaged by spring-boot-maven-plugin into a self-contained jar
+# (BOOT-INF/classes + BOOT-INF/lib), so it launches with `java -jar` and carries its own
+# dependencies. Do NOT try to run it on the module path: after repackaging the main class
+# lives under BOOT-INF/classes and `--module` cannot resolve it.
 Start-Job -ScriptBlock {
 	Start-Sleep -Seconds 3
 	Start-Process "http://localhost:8081/web-test/"
 } | Out-Null
 
-# Run with module path
 Write-Host "Running WebBootExample on port 8081..." -ForegroundColor Cyan
-java --module-path $modulePath --add-modules ALL-MODULE-PATH --module com.druvu.web.example/com.druvu.web.example.WebBootExample
+java -jar $exampleJar.FullName

@@ -19,6 +19,13 @@ public class DispatcherServlet extends HttpServlet {
     private static final HttpHandler NOT_FOUND = new ErrorHandler();
     private static final long serialVersionUID = 1L;
 
+    /**
+     * The template engine this dispatcher renders through. It is both the servlet name registered by the engine plugin
+     * and the file extension appended to a handler's path, so {@code /home} renders {@code /home.php}. A single engine
+     * ships and no second one is planned; when that changes, this becomes a lookup rather than a constant.
+     */
+    private static final String TEMPLATE_ENGINE = "php";
+
     @Override
     public void init() {
         // init
@@ -46,7 +53,6 @@ public class DispatcherServlet extends HttpServlet {
         PathInfo pathInfo = call.pathInfo();
         final String mainPath = pathInfo.mainPath();
 
-        final String templateSystem = ContextVars.templateSystem(getServletContext());
         if (req.getDispatcherType() == DispatcherType.REQUEST) {
             final HttpHandler httpHandler = handler(mainPath);
 
@@ -54,12 +60,12 @@ public class DispatcherServlet extends HttpServlet {
             if (resp.isCommitted()) {
                 return;
             }
-            dispatcher(req, templateSystem)
-                    .forward(new RequestWrapper(req, '/' + mainPath + "." + templateSystem), resp);
+            dispatcher(req, TEMPLATE_ENGINE)
+                    .forward(new RequestWrapper(req, '/' + mainPath + "." + TEMPLATE_ENGINE), resp);
         }
 
         if (req.getDispatcherType() == DispatcherType.INCLUDE) {
-            dispatcher(req, templateSystem).include(req, resp);
+            dispatcher(req, TEMPLATE_ENGINE).include(req, resp);
         }
     }
 

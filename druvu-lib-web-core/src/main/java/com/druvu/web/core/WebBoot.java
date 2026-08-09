@@ -56,7 +56,6 @@ public class WebBoot {
         public void contextInitialized(ServletContextEvent sce) {
             final ServletContext context = sce.getServletContext();
             setUpAppScopeBeans(context);
-            context.setAttribute(ContextVars.TEMPLATE_SYSTEM, webConfig.templateSystem());
             context.setAttribute(ContextVars.HANDLERS, urlConfigsAsMap());
             context.setAttribute(
                     ContextVars.HTTP_DEFAULT, webConfig.urlConfigs().getFirst().url());
