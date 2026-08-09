@@ -9,7 +9,7 @@
 
 A lightweight Java web framework on Jetty 12, with a PHP template engine — no PHP runtime, no FPM,
 no `mod_php`. Layouts are real PHP 8: variables, every control structure, string interpolation, heredocs, includes,
-arrow functions and some eighty standard functions. The dialect's semantics are settled by execution against PHP 8, 
+arrow functions and 115 standard functions. The dialect's semantics are settled by execution against PHP 8, 
 with whole templates matched against PHP's own output byte for byte.
 
 One thing is deliberately **better** than PHP: **output is HTML-escaped by default**, with `raw()` as the opt-out. In
@@ -154,7 +154,7 @@ markup-producing helpers need no `raw()`.
 | **Control** | `if`/`elseif`/`else`, `foreach`, `for`, `while`, `do…while`, `switch`, `match`, `break n`, `continue n`, `return` |
 | **Alternative syntax** | `if (…): … endif;` and the rest — the form a layout is actually written in |
 | **Composition** | `include`, `require`, `*_once`; the partial shares the including page's variables |
-| **Functions** | ~80 built in: escaping, strings, arrays, sorting, type checks, date display, maths |
+| **Functions** | **115** built in: escaping, strings, arrays, sorting, type checks, date display, maths |
 | **Closures** | arrow functions `fn($x) => …`, for `array_map` and friends |
 | **Host data** | `$_GET`, `$_POST`, `$_REQUEST`, `$_COOKIE`, `$_SERVER`, plus whatever the handler passes |
 
