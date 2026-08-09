@@ -17,7 +17,7 @@
 <p><?= "Double quotes" . ' and ' . 'single quotes' ?></p>
 
 <h2>Test 6: HTML in Strings</h2>
-<p><?php echo '<strong>Bold text</strong> and <em>italic text</em>'; ?></p>
+<p><?php echo raw('<strong>Bold text</strong> and <em>italic text</em>'); ?></p>
 
 <h2>Test 7: Multiple Tags in One Line</h2>
 <p>Before <?= 'middle' ?> After</p>

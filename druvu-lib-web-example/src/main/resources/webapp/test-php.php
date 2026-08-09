@@ -18,7 +18,7 @@
 <div class="test-case">
     <h2>Test 3: HTML Content</h2>
     <div class="result">
-        <?php echo '<strong>Bold text from PHP</strong>'; ?>
+        <?php echo raw('<strong>Bold text from PHP</strong>'); ?>
     </div>
 </div>
 
@@ -34,7 +34,7 @@
 <div class="test-case">
     <h2>Test 5: Complex HTML</h2>
     <div class="result">
-        <?php echo '<ul><li>Item 1</li><li>Item 2</li><li>Item 3</li></ul>'; ?>
+        <?php echo raw('<ul><li>Item 1</li><li>Item 2</li><li>Item 3</li></ul>'); ?>
     </div>
 </div>
 <?php require 'includes/footer.php'; ?>

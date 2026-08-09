@@ -8,7 +8,7 @@
 A lightweight Java web framework built on Jetty. Define handlers, add auth — your app is running in under 20 lines.
 
 > [!NOTE]
-> **About the PHP template engine** — Yes, this is a PHP implementation in Java. It is not meant to be a full PHP runtime — it covers simple web layout tasks like includes, string expressions, and built-in helper functions. If you need additional PHP functionality supported, I'd love to hear about it! Feel free to [open an issue](../../issues) with your use case or feature request.
+> **About the PHP template engine** — Yes, this is a PHP dialect implemented in Java. It is not a PHP runtime and is not trying to be one: it covers laying out HTML — variables, loops, conditions, expressions, interpolation, includes and a standard-function subset — and leaves databases, files, networking and sessions to the Java application. One thing behaves differently from PHP on purpose: **output is HTML-escaped by default**, with `raw()` as the opt-out. If a construct or function you need is missing, I'd love to hear about it — [open an issue](../../issues).
 
 ```java
 WebBoot boot = new WebBoot(WebConfig.builder()
@@ -287,38 +287,93 @@ public void onConnect(Session session, Sessions sessions) {
 
 ## PHP Template Engine
 
-A Java-based PHP-like template engine discovered automatically via ServiceLoader. No PHP runtime needed — it's pure Java parsing.
+A PHP dialect for laying out HTML, implemented in Java. No PHP runtime is involved and none is needed.
 
-### Supported Syntax
+It is a **layout** language, not a scripting one. Everything PHP offers for producing a page is here — variables,
+every control structure, expressions, string interpolation, includes, a standard-function subset. Everything else is
+deliberately absent: no database access, no filesystem, no network, no sessions, no `eval`, no user-defined functions
+or classes. Those belong to the Java application, which is the thing that should be deciding them.
+
+### Output is escaped by default
+
+**This is the one place the dialect deliberately does not behave like PHP.** Anything reaching `echo`, `print` or
+`<?= ?>` is HTML-escaped unless you say otherwise:
 
 ```php
-<?php echo 'Hello ' . 'World'; ?>     <!-- echo tag -->
-<?= 'Short echo: ' . context() ?>     <!-- short echo tag -->
-<?php require 'includes/header.php'; ?> <!-- include files -->
-<?php require_once 'lib/utils.php'; ?> <!-- include once (prevents circular includes) -->
+<?php $bio = "<script>alert('x')</script>"; ?>
+<?= $bio ?>              <!-- &lt;script&gt;alert(&#039;x&#039;)&lt;/script&gt; -->
+<?= raw($bio) ?>         <!-- printed as-is, because you asked -->
 ```
 
-### Expression Support
+In PHP the default is the other way round, and every template that forgets `htmlspecialchars` is a hole. Here
+forgetting is safe, and `raw()` is the thing you write on purpose — which also makes it the thing you can search for.
+The template's own markup is never touched; only values are. Safety does not survive concatenation: `raw($a) . $b`
+gives an ordinary, escaped string.
 
-| Feature            | Example                                |
-|--------------------|----------------------------------------|
-| String literals    | `'hello'`, `"world"`                   |
-| Concatenation      | `'Hello' . ' ' . 'World'`              |
-| Function calls     | `webjar('jquery.min.js')`              |
-| Nested expressions | `'prefix-' . link('page') . '-suffix'` |
-| Escape sequences   | `'\n'`, `'\t'`, `'\\'`                 |
+`link()`, `webjar()`, `context()`, `htmlspecialchars()` and `nl2br()` already return output-safe values, so URLs and
+markup-producing helpers need no `raw()`.
 
-### Built-in Functions
+### The language
 
-| Function       | Description                                             | Example                             |
-|----------------|---------------------------------------------------------|-------------------------------------|
-| `webjar(path)` | Resolves a WebJar asset to a full URL with context path | `<?= webjar('w2ui-2.0.min.css') ?>` |
-| `context()`    | Returns the servlet context path                        | `<?= context() ?>`                  |
-| `link(target)` | Builds a URL relative to the context path               | `<?= link('dashboard') ?>`          |
+| | |
+|---|---|
+| **Tags** | `<?php … ?>`, `<?= … ?>`, closing tag optional at end of file, one newline after `?>` swallowed |
+| **Values** | int, float, string, bool, null, arrays (list and keyed, nested) |
+| **Strings** | single- and double-quoted, `"$name"` and `"{$a['k']}"` interpolation, heredoc and nowdoc |
+| **Operators** | full PHP 8 precedence: `** * / % + - .` then comparison, `&& || and or xor`, `?? ?: ? :`, `= += .= ??=`, `++ --`, casts |
+| **Control** | `if`/`elseif`/`else`, `foreach`, `for`, `while`, `do…while`, `switch`, `match`, `break n`, `continue n`, `return` |
+| **Alternative syntax** | `if (…): … endif;` and the rest — the form a layout is actually written in |
+| **Composition** | `include`, `require`, `*_once`; the partial shares the including page's variables |
+| **Functions** | ~80 built in: escaping, strings, arrays, sorting, type checks, date display, maths |
+| **Closures** | arrow functions `fn($x) => …`, for `array_map` and friends |
+| **Host data** | `$_GET`, `$_POST`, `$_REQUEST`, `$_COOKIE`, `$_SERVER`, plus whatever the handler passes |
 
-### Extensibility
+```php
+<?php $items = ["pen" => 2, "cup" => 5]; ?>
+<ul>
+<?php foreach ($items as $what => $count): ?>
+  <li><?= $count ?> x <?= $what ?></li>
+<?php endforeach; ?>
+</ul>
+```
 
-The function system is pluggable. Custom functions can be registered on the `PhpFunctionRegistry`. The expression parser is designed for extension — variable support (`$var`), control structures (`if`/`foreach`), and superglobals (`$_GET`, `$_POST`) are planned.
+### Data from the application
+
+Whatever the handler passes arrives as ordinary variables — there is no model object to reach through:
+
+```php
+<?= $order->reference ?>              <!-- a record or bean, read-only -->
+<?= $order->customer?->name ?>        <!-- null-safe -->
+<?php foreach ($order->lines as $line): ?>…<?php endforeach; ?>
+```
+
+Maps become arrays, collections become lists, and anything else becomes a **read-only** view read through record
+components, then `getX()`, then `isX()`. A template can look at your objects and can do nothing else to them.
+
+### Built-in helpers for this framework
+
+| Function | Description | Example |
+|---|---|---|
+| `webjar(path)` | Resolves a WebJar asset to a URL with the context path | `<?= webjar('w2ui-2.0.min.css') ?>` |
+| `context()` | The servlet context path | `<?= context() ?>` |
+| `link(target)` | A URL relative to the context path | `<?= link('dashboard') ?>` |
+| `raw(value)` | Output without escaping | `<?= raw($html) ?>` |
+
+### Where it differs from PHP, on purpose
+
+- **Output is escaped by default** (above).
+- **Lengths count characters, not bytes.** `strlen("café")` is 4, not 5; `mb_strlen` is the same function.
+- **`date()` formats in UTC.** A layout language has no business guessing a timezone — convert before passing the
+  value in.
+- **`htmlentities()` writes numeric entities** (`&#233;`) rather than named ones. Browsers render them identically.
+- **Numbers are decimal only.** `0755`, `0x1A` and `0b1010` are refused rather than quietly misread, and `.5` is not
+  a literal, so `.` is always concatenation.
+- **No references, no bitwise operators, no `@` suppression.** The sorts (`sort`, `usort`, …) rearrange the variable
+  you give them, and are the only exception.
+
+Anything the dialect does not have produces an error naming what is missing, at load time where possible — never a
+silently different page. If a function you need is absent, [open an issue](../../issues); the library is where it
+gets added.
 
 ---
 
@@ -473,7 +528,7 @@ mvn package         # full build with Javadoc + sources
 druvu-lib-web-parent/
   druvu-lib-web-api/         # interfaces: HttpHandler, WebSocketHandler, WebConfig, AuthConfig
   druvu-lib-web-core/        # implementation: WebBoot, DispatcherServlet, auth, WebSocket
-  druvu-lib-web-php/         # PHP template engine: tokenizer, expression parser, functions
+  druvu-lib-web-php/         # PHP template engine: lexer, parser, syntax tree, runtime, function library
   druvu-lib-web-example/     # demo app: dashboard, w2ui grid, JSON API, WebSocket chat
 ```
 
@@ -484,7 +539,7 @@ druvu-lib-web-parent/
 | Server           | Jetty 12.1.6 (EE10 Servlet API)              |
 | Language         | Java 25                                      |
 | Build            | Maven                                        |
-| Template Engine  | PHP-like (Java-based, pluggable)             |
+| Template Engine  | PHP dialect (Java-based, pluggable)          |
 | WebSocket        | Jetty WebSocket API, JSON messaging via GSON |
 | Asset Management | WebJars + WebJarAssetLocator                 |
 | Plugin Discovery | ServiceLoader (via druvu-lib-loader)         |

@@ -1,7 +1,5 @@
 package com.druvu.web.php.internal;
 
-import com.druvu.web.php.internal.expr.PhpFunctionRegistry;
-import com.druvu.web.php.internal.func.BuiltInFunctions;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -9,102 +7,102 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
-import lombok.SneakyThrows;
+import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * PHP servlet that processes PHP files using a tokenization approach.
+ * Serves a template over HTTP.
  *
- * <p>Supports: - Standard echo tags: {@code <?php echo ... ?>} - Short echo tags: {@code <?= ... ?>} - Expression
- * evaluation with string literals and concatenation
+ * <p>Two things it takes care to do. The content type, including its charset, is set before anything is written, since
+ * a container that has already begun a response will not accept it afterwards. And when a template fails, the browser
+ * is told only that something went wrong: the message, which names files and line numbers and sometimes the shape of
+ * the data, goes to the log. Handing a stack trace to whoever asked for the page is how a template engine becomes a
+ * reconnaissance tool.
  *
  * @author Deniss Larka
  */
 public class PhpServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
-    private final TokenBasedPhpProcessor processor;
-    private final PhpFunctionRegistry functionRegistry;
 
-    /** Creates a new PhpServlet with the default token-based processor and built-in functions. */
+    private static final Logger LOG = LoggerFactory.getLogger(PhpServlet.class);
+
+    private final PhpEngineConfig config;
+    private final boolean cacheTemplates;
+
+    /** Built in {@link #init()}, which is what a container calls however the servlet instance came about. */
+    private transient PhpEngine engine;
+
+    /** The default policy: output escaped, templates parsed once. */
     public PhpServlet() {
-        this(new TokenBasedPhpProcessor());
+        this(PhpEngineConfig.DEFAULTS, true);
+    }
+
+    public PhpServlet(PhpEngineConfig config, boolean cacheTemplates) {
+        this.config = config;
+        this.cacheTemplates = cacheTemplates;
+    }
+
+    @Override
+    public void init() {
+        engine = new PhpEngine(PhpServlet::loadTemplate, config, cacheTemplates);
+    }
+
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        serve(request, response);
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        serve(request, response);
+    }
+
+    private void serve(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String path = request.getPathInfo();
+        if (path == null || path.isEmpty()) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+
+        String page;
+        try {
+            page = engine.render(path, request, Map.of());
+        } catch (PhpProcessingException failed) {
+            // The detail is for whoever maintains the template, not for whoever requested the page.
+            LOG.error("Rendering {} failed", path, failed);
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "The page could not be rendered");
+            return;
+        }
+
+        if (page == null) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+
+        response.setContentType("text/html");
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        try (PrintWriter writer = response.getWriter()) {
+            writer.write(page);
+        }
     }
 
     /**
-     * Creates a new PhpServlet with a custom processor. This constructor allows for dependency injection and custom
-     * processing logic.
+     * A template's text, from the webapp resources.
      *
-     * @param processor the PHP processor to use
+     * <p>The classpath fallback is for the executable-jar case: when this library runs inside one, webapp templates
+     * live under {@code webapp/} on the classpath, where the container's own resource lookup does not resolve the
+     * nested entry.
      */
-    public PhpServlet(TokenBasedPhpProcessor processor) {
-        this.processor = processor;
-        this.functionRegistry = new PhpFunctionRegistry();
-        BuiltInFunctions.registerAll(functionRegistry);
-    }
-
-    @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        processPhp(req, resp);
-    }
-
-    @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) {
-        processPhp(req, resp);
-    }
-
-    @SneakyThrows
-    private void processPhp(HttpServletRequest req, HttpServletResponse resp) {
-        String path = req.getPathInfo();
-        if (path == null || path.isEmpty()) {
-            resp.sendError(HttpServletResponse.SC_NOT_FOUND);
-            return;
-        }
-
-        // Load PHP file content from webapp resources
-        String content = loadPhpFile(req, path);
-        if (content == null) {
-            resp.sendError(HttpServletResponse.SC_NOT_FOUND, "PHP file not found: " + path);
-            return;
-        }
-
-        try {
-            // Create resource loader from servlet context
-            PhpContext.ResourceLoader resourceLoader = p -> loadPhpFile(req, p);
-
-            // Create context for processors
-            PhpContext context = new PhpContext(req, resp, path, resourceLoader, functionRegistry);
-
-            // Process content using a token-based processor
-            String processedContent = processor.process(content, context);
-
-            resp.setContentType("text/html");
-            resp.setCharacterEncoding("UTF-8");
-
-            try (PrintWriter writer = resp.getWriter()) {
-                writer.write(processedContent);
-            }
-        } catch (PhpProcessingException e) {
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error processing PHP: " + e.getMessage());
-        }
-    }
-
-    /** Loads PHP file content from the webapp resources. */
-    private String loadPhpFile(HttpServletRequest req, String path) throws IOException {
-        InputStream is = req.getServletContext().getResourceAsStream(path);
-        if (is == null) {
-            // Fat-jar / embedded-jar fallback: when this library runs inside an executable
-            // jar (e.g. a Spring Boot app), webapp templates live on the classpath under
-            // webapp/ (BOOT-INF/classes/webapp/... in a Spring Boot jar), where the servlet
-            // container's getResourceAsStream may not resolve the nested-jar entry. Load via
-            // the classloader, mirroring how the core RcUtils resolves webapp resources.
-            String resource = "webapp" + (path.startsWith("/") ? path : "/" + path);
-            is = Thread.currentThread().getContextClassLoader().getResourceAsStream(resource);
-        }
-        if (is == null) {
+    private static String loadTemplate(String path) throws IOException {
+        String resource = "webapp" + (path.startsWith("/") ? path : "/" + path);
+        InputStream stream = Thread.currentThread().getContextClassLoader().getResourceAsStream(resource);
+        if (stream == null) {
             return null;
         }
-        try (InputStream stream = is) {
-            return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+        try (InputStream open = stream) {
+            return new String(open.readAllBytes(), StandardCharsets.UTF_8);
         }
     }
 }

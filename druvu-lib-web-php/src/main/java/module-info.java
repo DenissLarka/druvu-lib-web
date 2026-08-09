@@ -12,8 +12,6 @@ module com.druvu.lib.web.php {
     // Open internal packages for Jetty reflection
     opens com.druvu.web.php.internal to
             org.eclipse.jetty.ee10.servlet;
-    opens com.druvu.web.php.internal.func to
-            org.eclipse.jetty.ee10.servlet;
 
     // Register a plugin factory
     provides com.druvu.lib.loader.ComponentFactory with
