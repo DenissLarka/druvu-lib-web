@@ -15,6 +15,8 @@ with whole templates matched against PHP's own output byte for byte.
 One thing is deliberately **better** than PHP: **output is HTML-escaped by default**, with `raw()` as the opt-out. In
 PHP, every template that forgets `htmlspecialchars` is a hole. Here, forgetting is safe.
 
+Project page: [druvu.com/projects/druvu-lib-web](https://druvu.com/projects/druvu-lib-web.html)
+
 Write the page:
 
 ```php
@@ -622,13 +624,13 @@ Go to [GitHub Settings > Developer settings > Personal access tokens](https://gi
 <dependency>
     <groupId>com.druvu</groupId>
     <artifactId>druvu-lib-web-core</artifactId>
-    <version>1.0.0</version>
+    <version>2.0.0</version>
 </dependency>
 <!-- PHP template engine (loaded automatically via ServiceLoader) -->
 <dependency>
     <groupId>com.druvu</groupId>
     <artifactId>druvu-lib-web-php</artifactId>
-    <version>1.0.0</version>
+    <version>2.0.0</version>
     <scope>runtime</scope>
 </dependency>
 ```
