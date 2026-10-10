@@ -7,6 +7,9 @@ import org.eclipse.jetty.ee10.servlet.ServletContextRequest;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.ErrorHandler;
 
+/**
+ * Jetty's error page, trimmed to the status, the message and the path: this is Jetty's own hook, so it speaks Jetty.
+ */
 public class CustomErrorHandler extends ErrorHandler {
 
     @Override

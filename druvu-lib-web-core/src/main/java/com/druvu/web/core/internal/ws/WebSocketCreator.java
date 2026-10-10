@@ -26,7 +26,8 @@ public class WebSocketCreator implements JettyWebSocketCreator {
     @Override
     public Object createWebSocket(JettyServerUpgradeRequest upRequest, JettyServerUpgradeResponse upResponse) {
 
-        final Optional<HttpCall> callOpt = HandlerUtils.process(upRequest, upResponse);
+        final Optional<HttpCall> callOpt = HandlerUtils.process(
+                upRequest.getHttpServletRequest(), new WebSocketHttpServletResponseDelegate(upResponse));
 
         if (callOpt.isPresent()) {
             final HttpCall call = callOpt.get();

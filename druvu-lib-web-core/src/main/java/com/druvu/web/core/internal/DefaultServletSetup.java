@@ -3,11 +3,16 @@ package com.druvu.web.core.internal;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
-import org.eclipse.jetty.ee10.servlet.DefaultServlet;
+import org.eclipse.jetty.ee10.servlet.ResourceServlet;
 import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
 import org.eclipse.jetty.ee10.servlet.ServletHolder;
 
-/** @author Deniss Larka on 11 February 2022 */
+/**
+ * Serves the static paths from the context's base resource with Jetty's {@code ResourceServlet}, the servlet meant for
+ * a mapping other than the default one; a week of caching, no directory listings.
+ *
+ * @author Deniss Larka on 11 February 2022
+ */
 public final class DefaultServletSetup implements Consumer<ServletContextHandler> {
     private final Set<String> staticPaths;
 
@@ -17,9 +22,10 @@ public final class DefaultServletSetup implements Consumer<ServletContextHandler
 
     @Override
     public void accept(ServletContextHandler servletContext) {
-        ServletHolder holder = new ServletHolder("default", DefaultServlet.class);
+        ServletHolder holder = new ServletHolder("static", ResourceServlet.class);
         holder.setInitOrder(1);
         holder.setInitParameter("cacheControl", "max-age=604800,public");
+        holder.setInitParameter("dirAllowed", "false");
         for (String staticPath : staticPaths) {
             servletContext.addServlet(holder, staticPath);
         }

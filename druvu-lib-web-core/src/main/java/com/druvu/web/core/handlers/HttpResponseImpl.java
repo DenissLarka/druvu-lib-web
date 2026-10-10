@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.util.Objects;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.jetty.http.HttpHeader;
 
 /** @author : Deniss Larka on 09 June 2024 */
 @Slf4j
@@ -23,7 +22,7 @@ public final class HttpResponseImpl implements HttpResponse {
     @Override
     public void sendRedirect(String page) {
         res.resetBuffer();
-        res.setHeader(HttpHeader.LOCATION.asString(), page);
+        res.setHeader("Location", page);
         res.setStatus(HttpServletResponse.SC_MOVED_TEMPORARILY);
     }
 

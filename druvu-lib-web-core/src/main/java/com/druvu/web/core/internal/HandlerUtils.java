@@ -12,16 +12,12 @@ import com.druvu.web.api.handlers.PathInfo;
 import com.druvu.web.core.handlers.HttpRequestImpl;
 import com.druvu.web.core.handlers.HttpResponseImpl;
 import com.druvu.web.core.handlers.attr.GlobalAttributesImpl;
-import com.druvu.web.core.internal.ws.WebSocketHttpServletResponseDelegate;
 import com.druvu.web.core.security.Identities;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.Objects;
 import java.util.Optional;
 import lombok.SneakyThrows;
-import org.eclipse.jetty.ee10.websocket.server.JettyServerUpgradeRequest;
-import org.eclipse.jetty.ee10.websocket.server.JettyServerUpgradeResponse;
-import org.eclipse.jetty.http.HttpStatus;
 
 /**
  * Turns a request into an {@link HttpCall} for its route, or answers it when it may not go further.
@@ -34,13 +30,6 @@ import org.eclipse.jetty.http.HttpStatus;
  *     on 20 May 2024
  */
 public class HandlerUtils {
-
-    public static Optional<HttpCall> process(
-            JettyServerUpgradeRequest upRequest, JettyServerUpgradeResponse upResponse) {
-        final HttpServletRequest httpServletRequest = upRequest.getHttpServletRequest();
-        final HttpServletResponse httpServletResponse = new WebSocketHttpServletResponseDelegate(upResponse);
-        return doProcess(httpServletRequest, httpServletResponse);
-    }
 
     public static Optional<HttpCall> process(
             HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse) {
@@ -56,10 +45,10 @@ public class HandlerUtils {
         final Optional<AuthUserIdentity> user = auth.flatMap(config -> Identities.of(httpServletRequest, config));
         if (route != null && route.requiresSignIn()) {
             if (user.isEmpty()) {
-                return refused(httpServletResponse, HttpStatus.UNAUTHORIZED_401);
+                return refused(httpServletResponse, HttpServletResponse.SC_UNAUTHORIZED);
             }
             if (!user.get().getPermissions().containsAll(route.permissions())) {
-                return refused(httpServletResponse, HttpStatus.FORBIDDEN_403);
+                return refused(httpServletResponse, HttpServletResponse.SC_FORBIDDEN);
             }
         }
         HttpRequest req = new HttpRequestImpl(httpServletRequest, user);

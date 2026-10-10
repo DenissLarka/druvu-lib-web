@@ -21,13 +21,13 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.jetty.http.MimeTypes;
 
 /** @author : Deniss Larka on 08 June 2024 */
 @Slf4j
 public final class HttpRequestImpl implements HttpRequest {
 
     private static final String ANONYMOUS = "ANONYMOUS";
+    private static final String MULTIPART_FORM_DATA = "multipart/form-data";
 
     private final Optional<AuthUserIdentity> authUserOpt;
     private final PathInfo pathInfo;
@@ -52,7 +52,8 @@ public final class HttpRequestImpl implements HttpRequest {
          * Multipart form data
          */
         final String contentType = req.getContentType();
-        if (contentType != null && MimeTypes.Type.MULTIPART_FORM_DATA.is(contentType)) {
+        if (contentType != null
+                && contentType.regionMatches(true, 0, MULTIPART_FORM_DATA, 0, MULTIPART_FORM_DATA.length())) {
             try {
                 for (Part part : req.getParts()) {
                     try (InputStreamReader streamReader =
