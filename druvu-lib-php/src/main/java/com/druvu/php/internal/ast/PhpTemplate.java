@@ -39,8 +39,7 @@ public final class PhpTemplate {
                 return returned.value();
             }
             if (signal != null) {
-                throw new PhpProcessingException(
-                        statement.location() + ": break or continue outside a loop");
+                throw new PhpProcessingException(statement.location() + ": break or continue outside a loop");
             }
         }
         return PhpInt.of(1L);

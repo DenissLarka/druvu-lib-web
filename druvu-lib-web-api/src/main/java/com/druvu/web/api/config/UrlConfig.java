@@ -9,16 +9,22 @@ import java.util.Set;
 
 /**
  * A route: the handler, the URL its name gives it, and who may reach it. No permissions and not {@code signedIn} means
- * public; a permission implies signing in.
+ * public; a permission implies signing in; a route for machines always needs a token.
  *
  * @author : Deniss Larka on 21 April 2024
  */
 public record UrlConfig<T extends UrlHandler>(
-        String url, Class<T> urlHandlerClass, boolean _default, Set<String> permissions, boolean signedIn) {
+        String url,
+        Class<T> urlHandlerClass,
+        boolean _default,
+        Set<String> permissions,
+        boolean signedIn,
+        Audience audience) {
 
     public UrlConfig {
         Objects.requireNonNull(url);
         Objects.requireNonNull(urlHandlerClass);
+        Objects.requireNonNull(audience);
         permissions = permissions == null ? Set.of() : Set.copyOf(permissions);
     }
 
@@ -40,19 +46,28 @@ public record UrlConfig<T extends UrlHandler>(
      */
     public static <T extends UrlHandler> UrlConfig<T> from(Class<T> urlHandlerClass, String... permissions) {
         return new UrlConfig<>(
-                HandlerNameConvention.translate(urlHandlerClass), urlHandlerClass, false, toSet(permissions), false);
+                urlOf(urlHandlerClass), urlHandlerClass, false, toSet(permissions), false, Audience.PEOPLE);
     }
 
     public static <T extends UrlHandler> UrlConfig<T> from(
             Class<T> urlHandlerClass, boolean _default, String... permissions) {
         return new UrlConfig<>(
-                HandlerNameConvention.translate(urlHandlerClass), urlHandlerClass, _default, toSet(permissions), false);
+                urlOf(urlHandlerClass), urlHandlerClass, _default, toSet(permissions), false, Audience.PEOPLE);
     }
 
     /** A route for any signed-in user, with no particular permission: a profile page, an account page. */
     public static <T extends UrlHandler> UrlConfig<T> signedIn(Class<T> urlHandlerClass) {
+        return new UrlConfig<>(urlOf(urlHandlerClass), urlHandlerClass, false, Set.of(), true, Audience.PEOPLE);
+    }
+
+    /** A route for machines: a bearer token is always required, plus the permissions given. */
+    public static <T extends UrlHandler> UrlConfig<T> forMachines(Class<T> urlHandlerClass, String... permissions) {
         return new UrlConfig<>(
-                HandlerNameConvention.translate(urlHandlerClass), urlHandlerClass, false, Set.of(), true);
+                urlOf(urlHandlerClass), urlHandlerClass, false, toSet(permissions), true, Audience.MACHINES);
+    }
+
+    private static String urlOf(Class<?> urlHandlerClass) {
+        return HandlerNameConvention.translate(urlHandlerClass);
     }
 
     private static Set<String> toSet(String[] permissions) {

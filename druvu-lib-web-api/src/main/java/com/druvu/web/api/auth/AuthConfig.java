@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -20,6 +21,7 @@ import java.util.Set;
  *     .people(new BasicAuthentication("Shop", users))
  *     .permissions(subject -> repository.permissionsOf(subject))
  *     .sessionTimeout(Duration.ofHours(8))
+ *     .machines(new BearerAuthentication(presented -> repository.subjectOf(ApiTokens.hash(presented))))
  *     .build();
  * }</pre>
  *
@@ -35,12 +37,19 @@ public final class AuthConfig {
 
     private final Authentication people;
     private final PermissionStore permissions;
+    private final BearerAuthentication machines;
     private final Duration sessionTimeout;
     private final String cookieName;
 
-    private AuthConfig(Authentication people, PermissionStore permissions, Duration sessionTimeout, String cookieName) {
+    private AuthConfig(
+            Authentication people,
+            PermissionStore permissions,
+            BearerAuthentication machines,
+            Duration sessionTimeout,
+            String cookieName) {
         this.people = Objects.requireNonNull(people, "people");
         this.permissions = Objects.requireNonNull(permissions, "permissions");
+        this.machines = machines;
         this.sessionTimeout = Objects.requireNonNull(sessionTimeout, "sessionTimeout");
         this.cookieName = Objects.requireNonNull(cookieName, "cookieName");
     }
@@ -59,6 +68,11 @@ public final class AuthConfig {
         return permissions;
     }
 
+    /** How machines sign in, when the application has routes for them. */
+    public Optional<BearerAuthentication> machines() {
+        return Optional.ofNullable(machines);
+    }
+
     /** How long a session may stay idle before it ends. */
     public Duration sessionTimeout() {
         return sessionTimeout;
@@ -72,6 +86,7 @@ public final class AuthConfig {
     public static final class AuthConfigBuilder {
         private Authentication people;
         private PermissionStore permissions;
+        private BearerAuthentication machines;
         private Duration sessionTimeout = DEFAULT_SESSION_TIMEOUT;
         private String cookieName = DEFAULT_COOKIE_NAME;
         private String realm = DEFAULT_REALM;
@@ -86,6 +101,11 @@ public final class AuthConfig {
 
         public AuthConfigBuilder permissions(PermissionStore permissions) {
             this.permissions = Objects.requireNonNull(permissions, "permissions");
+            return this;
+        }
+
+        public AuthConfigBuilder machines(BearerAuthentication machines) {
+            this.machines = Objects.requireNonNull(machines, "machines");
             return this;
         }
 
@@ -128,7 +148,7 @@ public final class AuthConfig {
             if (what == null) {
                 what = how instanceof BasicAuthentication basic ? inlinePermissions(basic) : subject -> Set.of();
             }
-            return new AuthConfig(how, what, sessionTimeout, cookieName);
+            return new AuthConfig(how, what, machines, sessionTimeout, cookieName);
         }
 
         private static PermissionStore inlinePermissions(BasicAuthentication basic) {

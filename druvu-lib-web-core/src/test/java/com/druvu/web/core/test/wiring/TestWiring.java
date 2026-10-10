@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.druvu.web.api.auth.AuthConfig;
+import com.druvu.web.api.auth.BearerAuthentication;
 import com.druvu.web.api.config.UrlConfig;
 import com.druvu.web.api.config.WebConfig;
 import com.google.gson.Gson;
@@ -17,6 +18,7 @@ import java.net.http.WebSocketHandshakeException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
@@ -33,6 +35,11 @@ import org.testng.annotations.Test;
  */
 public class TestWiring {
     private static final String PERMISSION = "secret:read";
+    /**
+     * Tokens as a machine would present them; alice holds the permission, carol is nobody the permission store knows.
+     */
+    private static final Map<String, String> TOKENS = Map.of("tok-alice", "alice", "tok-carol", "carol");
+
     private static final Gson GSON = new Gson();
 
     private BootedApp app;
@@ -51,10 +58,13 @@ public class TestWiring {
                 .urlConfig(UrlConfig.from(BrokenHandler.class))
                 .urlConfig(UrlConfig.from(EchoSocketHandler.class))
                 .urlConfig(UrlConfig.from(SecretSocketHandler.class, PERMISSION))
+                .urlConfig(UrlConfig.forMachines(ApiStatusHandler.class))
+                .urlConfig(UrlConfig.forMachines(ApiSecretHandler.class, PERMISSION))
                 .authConfig(AuthConfig.builder()
                         .basicAuth()
                         .user("alice", "pw", PERMISSION)
                         .user("bob", "pw", "other:permission")
+                        .machines(new BearerAuthentication(token -> Optional.ofNullable(TOKENS.get(token))))
                         .build())
                 .build();
         app = BootedApp.start(config, "/t");
@@ -154,6 +164,36 @@ public class TestWiring {
     }
 
     @Test
+    public void aMachineRouteChallengesForABearerToken() {
+        HttpResponse<String> response = get("/api-status");
+        assertThat(response.statusCode()).isEqualTo(401);
+        assertThat(response.headers().firstValue("www-authenticate"))
+                .hasValueSatisfying(challenge -> assertThat(challenge).startsWith("Bearer"));
+        assertThat(getAs("alice", "/api-status").statusCode())
+                .as("Basic credentials mean nothing on a machine route")
+                .isEqualTo(401);
+    }
+
+    @Test
+    public void aMachineWithAKnownTokenIsServed() {
+        HttpResponse<String> response = withToken("tok-alice", "/api-status");
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.body()).isEqualTo("{\"status\":\"ok\"}");
+        assertThat(withToken("tok-nobody", "/api-status").statusCode()).isEqualTo(401);
+    }
+
+    @Test
+    public void aMachineRouteChecksPermissionsLikeAnyOther() {
+        assertThat(withToken("tok-alice", "/api-secret").statusCode()).isEqualTo(200);
+        assertThat(withToken("tok-carol", "/api-secret").statusCode()).isEqualTo(403);
+    }
+
+    @Test
+    public void aPeopleRouteIgnoresABearerToken() {
+        assertThat(withToken("tok-alice", "/secret").statusCode()).isEqualTo(401);
+    }
+
+    @Test
     public void aWebSocketHandlerEchoesThroughItsSession()
             throws InterruptedException, ExecutionException, TimeoutException {
         Map<String, String> reply = json(roundTrip("/echo-socket", "{\"text\":\"ping\"}", null));
@@ -181,6 +221,12 @@ public class TestWiring {
     private HttpResponse<String> getAs(String user, String path) {
         return send(HttpRequest.newBuilder(app.uri(path))
                 .header("Authorization", basic(user))
+                .GET());
+    }
+
+    private HttpResponse<String> withToken(String token, String path) {
+        return send(HttpRequest.newBuilder(app.uri(path))
+                .header("Authorization", "Bearer " + token)
                 .GET());
     }
 

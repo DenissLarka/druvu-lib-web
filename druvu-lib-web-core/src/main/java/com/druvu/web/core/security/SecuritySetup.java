@@ -36,7 +36,7 @@ public final class SecuritySetup {
         Constraints.forRoutes(config.urlConfigs()).forEach(security::put);
         // The identity service comes from the login service; Jetty insists the two share one.
         security.setLoginService(LoginServices.forPeople(auth));
-        security.setAuthenticator(Authenticators.forPeople(auth.people()));
+        security.setAuthenticator(Authenticators.forConfig(auth, config.urlConfigs()));
         security.setRealmName(Authenticators.realmOf(auth.people()));
         security.setSessionRenewedOnAuthentication(true);
         context.setSessionHandler(Sessions.handler(auth));
