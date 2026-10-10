@@ -4,6 +4,7 @@ import com.druvu.web.php.internal.runtime.FunctionRegistry;
 import com.druvu.web.php.internal.runtime.Html;
 import com.druvu.web.php.internal.value.ArrayKey;
 import com.druvu.web.php.internal.value.PhpArray;
+import com.druvu.web.php.internal.value.PhpNull;
 import com.druvu.web.php.internal.value.PhpString;
 import com.druvu.web.php.internal.value.PhpValue;
 import com.druvu.web.php.internal.value.SafeString;
@@ -73,15 +74,29 @@ final class OutputFunctions {
 
     private static String query(PhpArray array) {
         StringBuilder query = new StringBuilder();
+        appendQuery(query, null, array);
+        return query.toString();
+    }
+
+    /** As PHP does it: a nested array becomes {@code parent[child]=value} pairs, and a null entry is left out. */
+    private static void appendQuery(StringBuilder query, String prefix, PhpArray array) {
         for (Map.Entry<ArrayKey, PhpValue> entry : array.entries().entrySet()) {
+            String name = prefix == null ? keyOf(entry.getKey()) : prefix + "[" + keyOf(entry.getKey()) + "]";
+            PhpValue value = entry.getValue();
+            if (value instanceof PhpNull) {
+                continue;
+            }
+            if (value instanceof PhpArray nested) {
+                appendQuery(query, name, nested);
+                continue;
+            }
             if (!query.isEmpty()) {
                 query.append('&');
             }
-            query.append(URLEncoder.encode(keyOf(entry.getKey()), StandardCharsets.UTF_8))
+            query.append(URLEncoder.encode(name, StandardCharsets.UTF_8))
                     .append('=')
-                    .append(URLEncoder.encode(entry.getValue().toStr(), StandardCharsets.UTF_8));
+                    .append(URLEncoder.encode(value.toStr(), StandardCharsets.UTF_8));
         }
-        return query.toString();
     }
 
     private static String keyOf(ArrayKey key) {

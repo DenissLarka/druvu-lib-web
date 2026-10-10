@@ -32,6 +32,11 @@ jobs:
           server-username: MAVEN_USERNAME
           server-password: MAVEN_TOKEN
 
+      # The php module's differential tests render every golden template through the real `php` on the PATH
+      # and through the engine; the runner image ships PHP, so they run here rather than skip.
+      - name: Show the PHP the differential tests run against
+        run: php -v
+
       - name: Build and verify
         run: mvn -B verify
         env:

@@ -1,0 +1,7 @@
+<?php $vals = [1, 1.5, "s", true, null, [1], "12", "1.5", "abc", "", "0", " 1", "1 ", "1e3", "0x1A", ".5", "-7", "+7", 0, 0.0]; ?>
+<?php foreach ($vals as $v): ?>
+<?= gettype($v) ?>|<?= get_debug_type($v) ?>|<?= json_encode(is_numeric($v)) ?>|<?= json_encode(boolval($v)) ?>|<?= is_string($v) || is_int($v) || is_float($v) ? strval($v) : "-" ?>|<?= is_array($v) ? count($v) : intval($v) ?>|<?= json_encode(is_int($v)) ?> <?= json_encode(is_float($v)) ?> <?= json_encode(is_bool($v)) ?> <?= json_encode(is_null($v)) ?> <?= json_encode(is_iterable($v)) ?> <?= json_encode(is_string($v)) ?> <?= json_encode(empty($v)) ?>
+<?php endforeach; ?>
+<?= json_encode(floatval("1.5abc")) ?> <?= json_encode(intval("abc")) ?> <?= json_encode(strval(1.0)) ?> <?= json_encode((string) true) ?> <?= json_encode((string) false) ?> <?= json_encode((string) null) ?> <?= json_encode(1 + true) ?> <?= json_encode("5" + "5") ?> <?= json_encode("5" . "5") ?> <?= json_encode(10 / 4) ?> <?= json_encode(10 / 5) ?> <?= json_encode((float) 10) ?> <?= json_encode(7 % -3) ?> <?= json_encode(-7 % 3) ?> <?= json_encode(0.1 + 0.2 == 0.3) ?> <?= json_encode(is_callable(fn() => 1)) ?> <?= json_encode((int) "1e3") ?> <?= json_encode("abc" <=> "abd") ?> <?= json_encode(1.5 + "1.5") ?> <?= json_encode("1.5" + "1.5") ?> <?= json_encode(2 * "2") ?> <?= json_encode("2" * "2") ?> <?= json_encode(0.5 * 2) ?>
+
+<?= checkdate(2, 29, 2024) ? "leap" : "no" ?> <?= checkdate(2, 29, 2023) ? "leap" : "no" ?> <?= checkdate(13, 1, 2024) ? "ok" : "bad" ?>

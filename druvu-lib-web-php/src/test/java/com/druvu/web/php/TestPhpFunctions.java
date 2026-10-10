@@ -123,6 +123,12 @@ public class TestPhpFunctions {
             {"implode(\",\", array_unique([1, 2, 2, 3]))", "1,2,3"},
             {"implode(\",\", array_map(fn($n) => $n * 2, [1, 2, 3]))", "2,4,6"},
             {"implode(\",\", array_filter([1, 2, 3, 4], fn($n) => $n % 2 == 0))", "2,4"},
+            {"implode(\",\", array_map(fn($a, $b) => $a . $b, [\"x\", \"y\", \"z\"], [1, 2]))", "x1,y2,z"},
+            {
+                "raw(http_build_query([\"a\" => 1, \"b\" => [\"x\" => 2, \"y\" => [3]], \"c\" => null]))",
+                "a=1&b%5Bx%5D=2&b%5By%5D%5B0%5D=3"
+            },
+            {"raw(json_encode(\"\u00fc\"))", "\"\\u00fc\""},
 
             // types
             {"gettype(1.0)", "double"},
@@ -144,6 +150,8 @@ public class TestPhpFunctions {
             {"date(\"Y-m-d H:i:s D N w z t L\", 1700000000)", "2023-11-14 22:13:20 Tue 2 2 317 30 0"},
             {"date(\"c\", 1700000000)", "2023-11-14T22:13:20+00:00"},
             {"date(\"r\", 1700000000)", "Tue, 14 Nov 2023 22:13:20 +0000"},
+            {"date(\"jS\", 1704067200) . date(\" jS\", 1704153600) . date(\" jS\", 1704240000)", "1st 2nd 3rd"},
+            {"date(\"jS\", 1704931200) . date(\" jS\", 1705881600) . date(\" jS\", 1706054400)", "11th 22nd 24th"},
 
             // constants exist
             {"PHP_EOL === \"\\n\" ? \"y\" : \"n\"", "y"},

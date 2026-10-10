@@ -93,6 +93,7 @@ public final class PhpParser {
             Symbol.TIMES_ASSIGN, BinaryOperator.MULTIPLY,
             Symbol.DIVIDE_ASSIGN, BinaryOperator.DIVIDE,
             Symbol.MODULO_ASSIGN, BinaryOperator.MODULO,
+            Symbol.POWER_ASSIGN, BinaryOperator.POWER,
             Symbol.CONCAT_ASSIGN, BinaryOperator.CONCAT);
 
     /**
@@ -576,7 +577,7 @@ public final class PhpParser {
 
     private PhpExpression arrowFunction(Location start) {
         expect(Symbol.LEFT_PAREN, "'(' after fn");
-        List<String> parameters = new ArrayList<>();
+        List<ArrowFunctionExpression.Parameter> parameters = new ArrayList<>();
         while (!peek().is(Symbol.RIGHT_PAREN)) {
             Token parameter = peek();
             if (!parameter.is(TokenType.VARIABLE)) {
@@ -584,7 +585,12 @@ public final class PhpParser {
                         parameter.location(), "Expected a parameter but found " + describe(parameter));
             }
             advance();
-            parameters.add(parameter.text());
+            PhpExpression defaultValue = null;
+            if (peek().is(Symbol.ASSIGN)) {
+                advance();
+                defaultValue = parseExpression();
+            }
+            parameters.add(new ArrowFunctionExpression.Parameter(parameter.text(), defaultValue));
             if (!peek().is(Symbol.COMMA)) {
                 break;
             }

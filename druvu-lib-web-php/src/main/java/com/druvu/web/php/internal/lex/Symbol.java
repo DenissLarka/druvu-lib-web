@@ -35,6 +35,7 @@ public enum Symbol {
     COALESCE("??"),
     ELVIS("?:"),
     POWER("**"),
+    POWER_ASSIGN("**="),
     INCREMENT("++"),
     DECREMENT("--"),
     PLUS_ASSIGN("+="),

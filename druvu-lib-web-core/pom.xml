@@ -17,10 +17,6 @@
 
 	<description>Core implementation for druvu-lib-web</description>
 
-	<properties>
-		<jakarta.el.api.version>6.0.1</jakarta.el.api.version>
-	</properties>
-
 	<dependencies>
 		<!-- API module -->
 		<dependency>
@@ -44,8 +40,52 @@
 		</dependency>
 
 		<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
-		<!-- JETTY -->
+		<!-- JETTY — the embedded server, only the slices core uses.   -->
+		<!-- No annotation scanning, JNDI, CDI or ASM: that chain is   -->
+		<!-- excluded below. jetty-ee10-webapp stays only because the   -->
+		<!-- websocket server module `requires transitive` it (JPMS);  -->
+		<!-- nothing in core uses WebAppContext or web.xml.            -->
 		<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+		<!-- Server, ServerConnector, HttpConfiguration, ErrorHandler (brings jetty-http/io/util) -->
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-server</artifactId>
+			<version>${jetty.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+
+		<!-- LoginService, Authenticator, IdentityService — the auth adapter -->
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-security</artifactId>
+			<version>${jetty.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+
+		<!-- ServletContextHandler, ServletHolder, DefaultServlet — the servlet container -->
+		<dependency>
+			<groupId>org.eclipse.jetty.ee10</groupId>
+			<artifactId>jetty-ee10-servlet</artifactId>
+			<version>${jetty.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+
+		<!-- Required at module level by jetty-ee10-websocket-jetty-server; core itself never uses it -->
 		<dependency>
 			<groupId>org.eclipse.jetty.ee10</groupId>
 			<artifactId>jetty-ee10-webapp</artifactId>
@@ -58,7 +98,9 @@
 			</exclusions>
 		</dependency>
 
-		<!-- Jetty WebSocket server -->
+		<!-- Jetty WebSocket server. Its pom pulls jetty-ee10-annotations (and with it plus, JNDI, CDI,
+		     interceptor, transaction, ASM) for WAR-style auto-configuration; its module-info does not
+		     require it, and core configures WebSocket programmatically, so the chain is excluded. -->
 		<dependency>
 			<groupId>org.eclipse.jetty.ee10.websocket</groupId>
 			<artifactId>jetty-ee10-websocket-jetty-server</artifactId>
@@ -69,29 +111,11 @@
 					<artifactId>*</artifactId>
 				</exclusion>
 				<exclusion>
-					<groupId>jakarta.el</groupId>
-					<artifactId>jakarta.el-api</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>jakarta.annotation</groupId>
-					<artifactId>jakarta.annotation-api</artifactId>
+					<groupId>org.eclipse.jetty.ee10</groupId>
+					<artifactId>jetty-ee10-annotations</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
-
-		<dependency>
-			<groupId>jakarta.el</groupId>
-			<artifactId>jakarta.el-api</artifactId>
-			<version>${jakarta.el.api.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>jakarta.annotation</groupId>
-			<artifactId>jakarta.annotation-api</artifactId>
-			<version>3.0.0</version>
-		</dependency>
-
-
 
 		<!-- spotbugs-annotations (also used by lombok generated code) -->
 		<dependency>
@@ -99,6 +123,15 @@
 			<artifactId>spotbugs-annotations</artifactId>
 			<version>4.10.4</version>
 			<scope>provided</scope>
+		</dependency>
+
+		<!-- TEST: the dispatcher is tested through the one template engine that ships. It is found by
+		     ServiceLoader at boot and never referenced from a test, exactly as an application sees it. -->
+		<dependency>
+			<groupId>com.druvu</groupId>
+			<artifactId>druvu-lib-web-php</artifactId>
+			<version>${project.version}</version>
+			<scope>test</scope>
 		</dependency>
 
 		<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
@@ -114,11 +147,27 @@
 
 	<build>
 		<plugins>
+			<!-- Tests compile and run on the classpath, as the example app runs. The wiring tests drive the booted
+			     server with the JDK's HTTP and WebSocket clients (java.net.http), which this module does not read, and
+			     the compiler plugin's own module arguments override an extra add-reads. -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>default-testCompile</id>
+						<configuration>
+							<useModulePath>false</useModulePath>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<version>${maven-surefire-plugin.version}</version>
 				<configuration>
+					<useModulePath>false</useModulePath>
 					<properties>
 						<property>
 							<name>usedefaultlisteners</name>

@@ -130,9 +130,9 @@ final class Json {
 
     private void writeOther(StringBuilder out, char c) {
         if (c < 0x20) {
-            out.append(String.format(java.util.Locale.ROOT, "\\u%04X", (int) c));
+            out.append(String.format(java.util.Locale.ROOT, "\\u%04x", (int) c));
         } else if (c > 127 && !isSet(UNESCAPED_UNICODE)) {
-            out.append(String.format(java.util.Locale.ROOT, "\\u%04X", (int) c));
+            out.append(String.format(java.util.Locale.ROOT, "\\u%04x", (int) c));
         } else {
             out.append(c);
         }

@@ -63,6 +63,7 @@ final class DateFunctions {
         return switch (c) {
             case 'd' -> two(when.getDayOfMonth());
             case 'j' -> String.valueOf(when.getDayOfMonth());
+            case 'S' -> ordinalSuffix(when.getDayOfMonth());
             case 'D' -> when.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH);
             case 'l' -> when.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.ENGLISH);
             case 'N' -> String.valueOf(when.getDayOfWeek().getValue());
@@ -99,6 +100,19 @@ final class DateFunctions {
             case 'c' -> format("Y-m-d\\TH:i:sP", epochSeconds);
             case 'r' -> format("D, d M Y H:i:s O", epochSeconds);
             default -> String.valueOf(c);
+        };
+    }
+
+    /** The English suffix PHP gives a day of the month: 1st, 2nd, 3rd, 4th, and 11th to 13th. */
+    private static String ordinalSuffix(int day) {
+        if (day >= 11 && day <= 13) {
+            return "th";
+        }
+        return switch (day % 10) {
+            case 1 -> "st";
+            case 2 -> "nd";
+            case 3 -> "rd";
+            default -> "th";
         };
     }
 

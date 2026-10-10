@@ -155,13 +155,9 @@ final class ArrayFunctions {
         sort(registry, "ksort", byKey(false), true);
         sort(registry, "krsort", byKey(true), true);
 
-        Functions.define(registry, "array_map", 2, (env, a) -> {
+        Functions.define(registry, "array_map", 2, Integer.MAX_VALUE, (env, a) -> {
             PhpClosure mapper = a.closure(0);
-            PhpArray mapped = PhpArray.empty();
-            for (Map.Entry<ArrayKey, PhpValue> entry : a.array(1).entries().entrySet()) {
-                mapped.put(entry.getKey(), mapper.call(List.of(entry.getValue())));
-            }
-            return mapped;
+            return a.has(2) ? mapSeveral(mapper, a) : mapOne(mapper, a.array(1));
         });
         Functions.define(registry, "array_filter", 1, 3, (env, a) -> filter(a));
         registry.registerInPlace("usort", (env, values) -> {
@@ -227,6 +223,35 @@ final class ArrayFunctions {
                 .toInt()));
         rearrange(array, entries, keepKeys);
         return PhpBool.TRUE;
+    }
+
+    /** One array: the mapper sees each value and the keys survive. */
+    private static PhpArray mapOne(PhpClosure mapper, PhpArray array) {
+        PhpArray mapped = PhpArray.empty();
+        for (Map.Entry<ArrayKey, PhpValue> entry : array.entries().entrySet()) {
+            mapped.put(entry.getKey(), mapper.call(List.of(entry.getValue())));
+        }
+        return mapped;
+    }
+
+    /** Several arrays: walked in step by position, a shorter one padded with null, the result re-indexed from 0. */
+    private static PhpArray mapSeveral(PhpClosure mapper, Arguments a) {
+        List<List<PhpValue>> columns = new ArrayList<>();
+        int longest = 0;
+        for (int i = 1; a.has(i); i++) {
+            List<PhpValue> values = new ArrayList<>(a.array(i).entries().values());
+            columns.add(values);
+            longest = Math.max(longest, values.size());
+        }
+        PhpArray mapped = PhpArray.empty();
+        for (int row = 0; row < longest; row++) {
+            List<PhpValue> arguments = new ArrayList<>(columns.size());
+            for (List<PhpValue> column : columns) {
+                arguments.add(row < column.size() ? column.get(row) : PhpNull.NULL);
+            }
+            mapped.append(mapper.call(arguments));
+        }
+        return mapped;
     }
 
     private static PhpValue filter(Arguments a) {

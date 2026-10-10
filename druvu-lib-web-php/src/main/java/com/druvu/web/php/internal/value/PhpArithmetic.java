@@ -8,7 +8,8 @@ import java.util.Map;
  *
  * <p>Three things are easy to get wrong and are therefore written out here rather than spread across operator nodes:
  * {@code /} yields an integer when the division comes out even and a float otherwise; {@code %} works on integers and
- * takes the sign of its left operand; and {@code +} on two arrays is a union, not addition.
+ * takes the sign of its left operand; and {@code +} on two arrays is a union, not addition. A fourth is written out
+ * here too: an integer result that no longer fits becomes a float, never a wrapped-around integer.
  *
  * <p>A string that is not a number at all is refused rather than treated as zero — PHP 8 raises a TypeError for it, and
  * a template that adds 1 to a name has a bug worth hearing about. A string that merely <em>starts</em> with a number is
@@ -28,7 +29,11 @@ public final class PhpArithmetic {
         PhpValue x = toNumber(left, "+", right);
         PhpValue y = toNumber(right, "+", left);
         if (x instanceof PhpInt a && y instanceof PhpInt b) {
-            return PhpInt.of(a.value() + b.value());
+            try {
+                return PhpInt.of(Math.addExact(a.value(), b.value()));
+            } catch (ArithmeticException overflow) {
+                return PhpFloat.of((double) a.value() + (double) b.value());
+            }
         }
         return PhpFloat.of(x.toFloat() + y.toFloat());
     }
@@ -37,7 +42,11 @@ public final class PhpArithmetic {
         PhpValue x = toNumber(left, "-", right);
         PhpValue y = toNumber(right, "-", left);
         if (x instanceof PhpInt a && y instanceof PhpInt b) {
-            return PhpInt.of(a.value() - b.value());
+            try {
+                return PhpInt.of(Math.subtractExact(a.value(), b.value()));
+            } catch (ArithmeticException overflow) {
+                return PhpFloat.of((double) a.value() - (double) b.value());
+            }
         }
         return PhpFloat.of(x.toFloat() - y.toFloat());
     }
@@ -46,7 +55,11 @@ public final class PhpArithmetic {
         PhpValue x = toNumber(left, "*", right);
         PhpValue y = toNumber(right, "*", left);
         if (x instanceof PhpInt a && y instanceof PhpInt b) {
-            return PhpInt.of(a.value() * b.value());
+            try {
+                return PhpInt.of(Math.multiplyExact(a.value(), b.value()));
+            } catch (ArithmeticException overflow) {
+                return PhpFloat.of((double) a.value() * (double) b.value());
+            }
         }
         return PhpFloat.of(x.toFloat() * y.toFloat());
     }
@@ -113,8 +126,8 @@ public final class PhpArithmetic {
         return !Double.isNaN(result)
                 && !Double.isInfinite(result)
                 && PhpFloats.sameValue(result, Math.rint(result))
-                && result >= (double) Long.MIN_VALUE
-                && result <= (double) Long.MAX_VALUE;
+                && result >= -0x1p63
+                && result < 0x1p63; // (double) Long.MAX_VALUE rounds up to 2^63, which does not fit
     }
 
     /**

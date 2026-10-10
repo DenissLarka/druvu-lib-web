@@ -34,6 +34,13 @@ public class TestPhpExpressions {
             {"-2 ** 2", "integer", "-4"},
             {"2 ** 3 ** 2", "integer", "512"},
             {"2 ** -1", "double", "0.5"},
+            // integer overflow becomes a float, never a wrapped integer
+            {"9223372036854775807 + 1", "double", "9.2233720368548E+18"},
+            {"-9223372036854775807 - 2", "double", "-9.2233720368548E+18"},
+            {"9223372036854775807 * 2", "double", "1.844674407371E+19"},
+            {"2 ** 62", "integer", "4611686018427387904"},
+            {"2 ** 63", "double", "9.2233720368548E+18"},
+            {"-(-9223372036854775807 - 1)", "double", "9.2233720368548E+18"},
             {"!0 * 3", "integer", "3"},
             {"true ? 1 : 2", "integer", "1"},
             {"null ?: \"fallback\"", "string", "fallback"},
@@ -171,6 +178,9 @@ public class TestPhpExpressions {
             // an arrow function captures by value, at the moment it is written
             {new String[] {"$m = 3", "$f = fn($x) => $x * $m", "$m = 99", "$f(2)"}, "6"},
             {new String[] {"$f = fn($a, $b) => $a . $b", "$f(\"x\", \"y\")"}, "xy"},
+            {new String[] {"$f = fn($x, $y = 2) => $x * $y", "$f(3)"}, "6"},
+            {new String[] {"$f = fn($x, $y = 2) => $x * $y", "$f(3, 3)"}, "9"},
+            {new String[] {"$p = 2", "$p **= 3", "$p"}, "8"},
         };
     }
 
