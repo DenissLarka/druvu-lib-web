@@ -72,6 +72,19 @@
 			</exclusions>
 		</dependency>
 
+		<!-- OpenID Connect: Jetty's own authenticator and login service (brings jetty-client and jetty-util-ajax) -->
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-openid</artifactId>
+			<version>${jetty.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+
 		<!-- ServletContextHandler, ServletHolder, DefaultServlet — the servlet container -->
 		<dependency>
 			<groupId>org.eclipse.jetty.ee10</groupId>

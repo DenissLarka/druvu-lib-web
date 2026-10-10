@@ -1,9 +1,11 @@
 package com.druvu.web.core.security;
 
 import com.druvu.web.api.auth.AuthConfig;
+import com.druvu.web.api.auth.OpenIdAuthentication;
 import com.druvu.web.api.config.UrlConfig;
 import com.druvu.web.api.config.WebConfig;
 import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
+import org.eclipse.jetty.ee10.servlet.ServletHolder;
 import org.eclipse.jetty.security.SecurityHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,15 +34,20 @@ public final class SecuritySetup {
             LOG.info("No AuthConfig: every route is public");
             return;
         }
+        PeopleSignIn people = PeopleSignIn.of(auth);
         SecurityHandler.PathMapped security = new SecurityHandler.PathMapped();
         Constraints.forRoutes(config.urlConfigs()).forEach(security::put);
         // The identity service comes from the login service; Jetty insists the two share one.
-        security.setLoginService(LoginServices.forPeople(auth));
-        security.setAuthenticator(Authenticators.forConfig(auth, config.urlConfigs()));
-        security.setRealmName(Authenticators.realmOf(auth.people()));
+        security.setLoginService(people.loginService());
+        security.setAuthenticator(Authenticators.forConfig(auth, people, config.urlConfigs()));
+        security.setRealmName(people.realm());
         security.setSessionRenewedOnAuthentication(true);
         context.setSessionHandler(Sessions.handler(auth));
         context.setSecurityHandler(security);
+        if (auth.people() instanceof OpenIdAuthentication openId) {
+            context.addServlet(
+                    new ServletHolder("logout", new LogoutServlet(openId.afterLogout())), openId.logoutPath());
+        }
     }
 
     private static void warnAboutProtectedRoutes(WebConfig config) {

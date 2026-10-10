@@ -12,6 +12,7 @@ module com.druvu.lib.web.core {
     requires org.eclipse.jetty.ee10.websocket.jetty.server;
     requires org.eclipse.jetty.http;
     requires org.eclipse.jetty.security;
+    requires org.eclipse.jetty.security.openid;
     requires org.eclipse.jetty.server;
     requires org.eclipse.jetty.util;
     requires org.eclipse.jetty.websocket.api;
