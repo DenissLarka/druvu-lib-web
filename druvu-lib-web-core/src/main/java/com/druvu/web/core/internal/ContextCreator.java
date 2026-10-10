@@ -4,6 +4,7 @@ import com.druvu.lib.loader.MultiComponentLoader;
 import com.druvu.web.api.config.WebConfig;
 import com.druvu.web.api.plugin.TemplateEnginePlugin;
 import com.druvu.web.core.internal.ws.WebSocketSetup;
+import com.druvu.web.core.security.SecuritySetup;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +36,7 @@ public class ContextCreator {
         });
 
         webappContext.setErrorHandler(new CustomErrorHandler());
+        SecuritySetup.install(webappContext, webConfig);
 
         // Core servlets
         List<Consumer<ServletContextHandler>> setups = new ArrayList<>();

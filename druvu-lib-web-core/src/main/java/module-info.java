@@ -20,7 +20,6 @@ module com.druvu.lib.web.core {
 
     // Export public packages
     exports com.druvu.web.core;
-    exports com.druvu.web.core.auth;
     exports com.druvu.web.core.handlers;
     exports com.druvu.web.core.handlers.attr;
     exports com.druvu.web.core.utils;

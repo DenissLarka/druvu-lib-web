@@ -8,10 +8,6 @@
 		<Package name="com.druvu.web.php.internal"/>
 		<Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
 	</Match>
-	<Match>
-		<Package name="com.druvu.web.php.internal.expr"/>
-		<Bug pattern="EI_EXPOSE_REP2"/>
-	</Match>
 
 	<!-- HttpServlet implements Serializable but servlets are never serialized -->
 	<Match>

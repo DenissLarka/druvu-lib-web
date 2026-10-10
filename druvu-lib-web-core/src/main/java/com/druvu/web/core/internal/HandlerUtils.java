@@ -1,29 +1,38 @@
 package com.druvu.web.core.internal;
 
+import com.druvu.web.api.auth.AuthConfig;
 import com.druvu.web.api.auth.AuthUserIdentity;
 import com.druvu.web.api.config.UrlConfig;
 import com.druvu.web.api.config.UrlHandler;
 import com.druvu.web.api.handlers.GlobalAttributes;
+import com.druvu.web.api.handlers.HttpCall;
 import com.druvu.web.api.handlers.HttpRequest;
 import com.druvu.web.api.handlers.HttpResponse;
 import com.druvu.web.api.handlers.PathInfo;
-import com.druvu.web.core.auth.SecurityCheck;
-import com.druvu.web.core.handlers.HttpCall;
 import com.druvu.web.core.handlers.HttpRequestImpl;
 import com.druvu.web.core.handlers.HttpResponseImpl;
 import com.druvu.web.core.handlers.attr.GlobalAttributesImpl;
 import com.druvu.web.core.internal.ws.WebSocketHttpServletResponseDelegate;
+import com.druvu.web.core.security.Identities;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import lombok.SneakyThrows;
 import org.eclipse.jetty.ee10.websocket.server.JettyServerUpgradeRequest;
 import org.eclipse.jetty.ee10.websocket.server.JettyServerUpgradeResponse;
 import org.eclipse.jetty.http.HttpStatus;
 
-/** @author : Deniss Larka on 20 May 2024 */
+/**
+ * Turns a request into an {@link HttpCall} for its route, or answers it when it may not go further.
+ *
+ * <p>Jetty's security handler has already run: an anonymous visitor to a protected route was challenged before this
+ * code saw the request. What is decided here is authorisation, because a route's permissions are all required and
+ * Jetty's role constraints grant on any one of them: a signed-in user lacking a permission gets 403.
+ *
+ * @author Deniss Larka <br>
+ *     on 20 May 2024
+ */
 public class HandlerUtils {
 
     public static Optional<HttpCall> process(
@@ -42,30 +51,25 @@ public class HandlerUtils {
             HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse) {
         final GlobalAttributes globalAttributes = GlobalAttributesImpl.from(httpServletRequest.getServletContext());
         final String mainPath = resolveMainPath(httpServletRequest, globalAttributes);
-        final Set<String> requiredPermissions = globalAttributes.permissionsFor(mainPath);
-
-        Optional<AuthUserIdentity> identityOpt;
-        if (requiredPermissions.isEmpty()) {
-            // Public URL — no authentication needed
-            identityOpt = Optional.empty();
-        } else {
-            // Protected URL — authenticate
-            identityOpt = SecurityCheck.remoteUser(httpServletRequest, httpServletResponse);
-            if (httpServletResponse.isCommitted()) {
-                return Optional.empty();
+        final UrlConfig<?> route = globalAttributes.handlers().get(mainPath);
+        final Optional<AuthConfig> auth = ContextVars.authConfig(httpServletRequest.getServletContext());
+        final Optional<AuthUserIdentity> user = auth.flatMap(config -> Identities.of(httpServletRequest, config));
+        if (route != null && route.requiresSignIn()) {
+            if (user.isEmpty()) {
+                return refused(httpServletResponse, HttpStatus.UNAUTHORIZED_401);
+            }
+            if (!user.get().getPermissions().containsAll(route.permissions())) {
+                return refused(httpServletResponse, HttpStatus.FORBIDDEN_403);
             }
         }
-
-        HttpRequest req = new HttpRequestImpl(httpServletRequest, identityOpt);
+        HttpRequest req = new HttpRequestImpl(httpServletRequest, user);
         HttpResponse resp = new HttpResponseImpl(httpServletResponse);
+        return Optional.of(new HttpCall(req, resp));
+    }
 
-        Set<String> userPermissions =
-                identityOpt.map(SecurityCheck::permissions).orElse(Set.of());
-        if (userPermissions.containsAll(requiredPermissions)) {
-            return Optional.of(new HttpCall(req, resp));
-        }
-        if (!resp.isCommitted()) {
-            resp.sendError(HttpStatus.UNAUTHORIZED_401);
+    private static Optional<HttpCall> refused(HttpServletResponse response, int status) {
+        if (!response.isCommitted()) {
+            new HttpResponseImpl(response).sendError(status);
         }
         return Optional.empty();
     }

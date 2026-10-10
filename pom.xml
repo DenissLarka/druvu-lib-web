@@ -5,7 +5,7 @@
 
 	<groupId>com.druvu</groupId>
 	<artifactId>druvu-lib-web</artifactId>
-	<version>2.0.1-SNAPSHOT</version>
+	<version>3.0.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
 	<name>DRUVU.COM / LIB</name>
@@ -54,6 +54,7 @@
 		<!-- New modular structure -->
 		<module>druvu-lib-web-api</module>
 		<module>druvu-lib-web-core</module>
+		<module>druvu-lib-php</module>
 		<module>druvu-lib-web-php</module>
 		<!-- Example -->
 		<module>druvu-lib-web-example</module>

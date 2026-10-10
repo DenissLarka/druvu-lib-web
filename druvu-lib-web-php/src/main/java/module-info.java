@@ -1,6 +1,8 @@
 module com.druvu.lib.web.php {
-    requires static lombok;
     requires static com.github.spotbugs.annotations;
+
+    // The engine, which a user of this module may reach for directly
+    requires transitive com.druvu.lib.php;
     requires com.druvu.lib.web.api;
     requires com.druvu.lib.loader;
     requires org.eclipse.jetty.ee10.servlet;

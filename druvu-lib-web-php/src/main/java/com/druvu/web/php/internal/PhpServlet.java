@@ -1,12 +1,16 @@
 package com.druvu.web.php.internal;
 
+import com.druvu.php.PhpEngine;
+import com.druvu.php.PhpEngineConfig;
+import com.druvu.php.PhpProcessingException;
+import com.druvu.php.TemplateLoader;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,28 +28,22 @@ import org.slf4j.LoggerFactory;
 public class PhpServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
-
     private static final Logger LOG = LoggerFactory.getLogger(PhpServlet.class);
 
     private final PhpEngineConfig config;
-    private final boolean cacheTemplates;
-
-    /** Built in {@link #init()}, which is what a container calls however the servlet instance came about. */
     private transient PhpEngine engine;
 
-    /** The default policy: output escaped, templates parsed once. */
     public PhpServlet() {
-        this(PhpEngineConfig.DEFAULTS, true);
+        this(PhpEngineConfig.DEFAULTS);
     }
 
-    public PhpServlet(PhpEngineConfig config, boolean cacheTemplates) {
+    public PhpServlet(PhpEngineConfig config) {
         this.config = config;
-        this.cacheTemplates = cacheTemplates;
     }
 
     @Override
     public void init() {
-        engine = new PhpEngine(PhpServlet::loadTemplate, config, cacheTemplates);
+        engine = new PhpEngine(TemplateLoader.classpath("webapp"), config);
     }
 
     @Override
@@ -64,44 +62,23 @@ public class PhpServlet extends HttpServlet {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
-
-        String page;
+        Optional<String> page;
         try {
-            page = engine.render(path, request, RequestModel.from(request));
+            page = engine.render(path, RequestModel.from(request), new ServletHostRequest(request));
         } catch (PhpProcessingException failed) {
             // The detail is for whoever maintains the template, not for whoever requested the page.
             LOG.error("Rendering {} failed", path, failed);
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "The page could not be rendered");
             return;
         }
-
-        if (page == null) {
+        if (page.isEmpty()) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
-
         response.setContentType("text/html");
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         try (PrintWriter writer = response.getWriter()) {
-            writer.write(page);
-        }
-    }
-
-    /**
-     * A template's text, from the webapp resources.
-     *
-     * <p>The classpath fallback is for the executable-jar case: when this library runs inside one, webapp templates
-     * live under {@code webapp/} on the classpath, where the container's own resource lookup does not resolve the
-     * nested entry.
-     */
-    private static String loadTemplate(String path) throws IOException {
-        String resource = "webapp" + (path.startsWith("/") ? path : "/" + path);
-        InputStream stream = Thread.currentThread().getContextClassLoader().getResourceAsStream(resource);
-        if (stream == null) {
-            return null;
-        }
-        try (InputStream open = stream) {
-            return new String(open.readAllBytes(), StandardCharsets.UTF_8);
+            writer.write(page.get());
         }
     }
 }

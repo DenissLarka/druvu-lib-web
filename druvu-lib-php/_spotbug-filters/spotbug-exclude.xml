@@ -1,0 +1,17 @@
+<FindBugsFilter>
+	<Match>
+		<Annotation name="lombok.Generated"/>
+	</Match>
+
+	<!-- Internal classes intentionally expose mutable state for internal plumbing -->
+	<Match>
+		<Package name="~com\.druvu\.php\.internal.*"/>
+		<Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+	</Match>
+
+	<!-- TestNG @BeforeMethod initializes fields before each test -->
+	<Match>
+		<Class name="~.*\.Test.*"/>
+		<Bug pattern="UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"/>
+	</Match>
+</FindBugsFilter>

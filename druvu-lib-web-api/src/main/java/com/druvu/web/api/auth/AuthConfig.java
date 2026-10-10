@@ -1,125 +1,141 @@
 package com.druvu.web.api.auth;
 
+import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import lombok.Getter;
 
 /**
- * Authentication configuration for the web service.
- *
- * <p>Built via {@link #builder()}. Supports both inline user definitions (for development and simple apps) and
- * pluggable {@link UserStore} implementations (for a database, LDAP, etc.).
- *
- * <p>Example with inline users:
+ * Everything an application decides about signing in: how people do it, what they may do once in, and how long a
+ * session lasts.
  *
  * <pre>{@code
- * AuthConfig.builder()
+ * AuthConfig.builder()                         // a demo: inline users
  *     .basicAuth()
- *     .realm("My App")
- *     .user("admin", "secret", "admin:permission", "generic:permission")
- *     .user("viewer", "pass", "generic:permission")
+ *     .user("admin", "secret", "orders:read")
+ *     .build();
+ *
+ * AuthConfig.builder()                         // an application: a store of its own
+ *     .people(new BasicAuthentication("Shop", users))
+ *     .permissions(subject -> repository.permissionsOf(subject))
+ *     .sessionTimeout(Duration.ofHours(8))
  *     .build();
  * }</pre>
  *
- * <p>Example with pluggable user store:
+ * <p>A {@code WebConfig} without an {@code AuthConfig} serves every route to everyone.
  *
- * <pre>{@code
- * AuthConfig.builder()
- *     .basicAuth()
- *     .userStore(myJdbcUserStore)
- *     .build();
- * }</pre>
- *
- * @author Deniss Larka on 11 March 2022
+ * @author Deniss Larka
  */
-@Getter
 public final class AuthConfig {
 
-    private final String authType;
-    private final String realmName;
-    private final boolean sessionRenewal;
-    private final int sessionTimeoutSeconds;
-    private final UserStore userStore;
+    public static final Duration DEFAULT_SESSION_TIMEOUT = Duration.ofMinutes(30);
+    public static final String DEFAULT_COOKIE_NAME = "session";
+    public static final String DEFAULT_REALM = "Application Access";
 
-    AuthConfig(
-            String authType, String realmName, boolean sessionRenewal, int sessionTimeoutSeconds, UserStore userStore) {
-        this.authType = Objects.requireNonNull(authType);
-        this.realmName = Objects.requireNonNull(realmName);
-        this.sessionRenewal = sessionRenewal;
-        this.sessionTimeoutSeconds = sessionTimeoutSeconds;
-        this.userStore = Objects.requireNonNull(userStore);
+    private final Authentication people;
+    private final PermissionStore permissions;
+    private final Duration sessionTimeout;
+    private final String cookieName;
+
+    private AuthConfig(Authentication people, PermissionStore permissions, Duration sessionTimeout, String cookieName) {
+        this.people = Objects.requireNonNull(people, "people");
+        this.permissions = Objects.requireNonNull(permissions, "permissions");
+        this.sessionTimeout = Objects.requireNonNull(sessionTimeout, "sessionTimeout");
+        this.cookieName = Objects.requireNonNull(cookieName, "cookieName");
     }
 
     public static AuthConfigBuilder builder() {
         return new AuthConfigBuilder();
     }
 
-    public static class AuthConfigBuilder {
-        private String authType = "BASIC";
-        private String realmName = "Application Access";
-        private boolean sessionRenewal = true;
-        private int sessionTimeoutSeconds = 1800;
-        private UserStore userStore;
-        private final Map<String, InMemoryUserStore.User> inlineUsers = new LinkedHashMap<>();
+    /** How people sign in. */
+    public Authentication people() {
+        return people;
+    }
 
-        public AuthConfigBuilder authType(String authType) {
-            this.authType = authType;
+    /** What a signed-in subject may do. */
+    public PermissionStore permissions() {
+        return permissions;
+    }
+
+    /** How long a session may stay idle before it ends. */
+    public Duration sessionTimeout() {
+        return sessionTimeout;
+    }
+
+    /** The name of the session cookie. */
+    public String cookieName() {
+        return cookieName;
+    }
+
+    public static final class AuthConfigBuilder {
+        private Authentication people;
+        private PermissionStore permissions;
+        private Duration sessionTimeout = DEFAULT_SESSION_TIMEOUT;
+        private String cookieName = DEFAULT_COOKIE_NAME;
+        private String realm = DEFAULT_REALM;
+        private final Map<String, BasicUser> inlineUsers = new LinkedHashMap<>();
+
+        private AuthConfigBuilder() {}
+
+        public AuthConfigBuilder people(Authentication people) {
+            this.people = Objects.requireNonNull(people, "people");
             return this;
         }
 
+        public AuthConfigBuilder permissions(PermissionStore permissions) {
+            this.permissions = Objects.requireNonNull(permissions, "permissions");
+            return this;
+        }
+
+        public AuthConfigBuilder sessionTimeout(Duration sessionTimeout) {
+            this.sessionTimeout = Objects.requireNonNull(sessionTimeout, "sessionTimeout");
+            return this;
+        }
+
+        public AuthConfigBuilder cookieName(String cookieName) {
+            this.cookieName = Objects.requireNonNull(cookieName, "cookieName");
+            return this;
+        }
+
+        /** Inline users follow; the realm is what the browser's password prompt shows. */
         public AuthConfigBuilder basicAuth() {
-            this.authType = "BASIC";
             return this;
         }
 
-        public AuthConfigBuilder realm(String realmName) {
-            this.realmName = realmName;
+        public AuthConfigBuilder realm(String realm) {
+            this.realm = Objects.requireNonNull(realm, "realm");
             return this;
         }
 
-        public AuthConfigBuilder sessionRenewal(boolean sessionRenewal) {
-            this.sessionRenewal = sessionRenewal;
-            return this;
-        }
-
-        public AuthConfigBuilder sessionTimeout(int seconds) {
-            this.sessionTimeoutSeconds = seconds;
-            return this;
-        }
-
-        /**
-         * Set a custom {@link UserStore} for user permission retrieval. Mutually exclusive with {@link #user(String,
-         * String, String...)}.
-         */
-        public AuthConfigBuilder userStore(UserStore userStore) {
-            this.userStore = userStore;
-            return this;
-        }
-
-        /**
-         * Add an in-memory user with credentials and permissions. Mutually exclusive with
-         * {@link #userStore(UserStore)}.
-         *
-         * @param name the username
-         * @param password the password
-         * @param permissions permission strings granted to this user
-         */
+        /** An inline user for Basic authentication, with what the user may do. */
         public AuthConfigBuilder user(String name, String password, String... permissions) {
-            inlineUsers.put(name, new InMemoryUserStore.User(password, Set.of(permissions)));
+            inlineUsers.put(Objects.requireNonNull(name, "name"), new BasicUser(password, Set.of(permissions)));
             return this;
         }
 
+        /** @throws IllegalStateException when there is no way to sign in: neither {@link #people} nor inline users */
         public AuthConfig build() {
-            UserStore store = this.userStore;
-            if (store == null) {
-                if (inlineUsers.isEmpty()) {
-                    throw new IllegalStateException("Either userStore() or at least one user() must be provided");
-                }
-                store = new InMemoryUserStore(inlineUsers);
+            Authentication how = people;
+            PermissionStore what = permissions;
+            if (how == null && !inlineUsers.isEmpty()) {
+                how = new BasicAuthentication(realm, inlineUsers);
             }
-            return new AuthConfig(authType, realmName, sessionRenewal, sessionTimeoutSeconds, store);
+            if (how == null) {
+                throw new IllegalStateException("No way to sign in: give people(...) or at least one user(...)");
+            }
+            if (what == null) {
+                what = how instanceof BasicAuthentication basic ? inlinePermissions(basic) : subject -> Set.of();
+            }
+            return new AuthConfig(how, what, sessionTimeout, cookieName);
+        }
+
+        private static PermissionStore inlinePermissions(BasicAuthentication basic) {
+            return subject -> {
+                BasicUser user = basic.users().get(subject);
+                return user == null ? Set.of() : user.permissions();
+            };
         }
     }
 }

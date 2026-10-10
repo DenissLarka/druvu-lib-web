@@ -1,8 +1,8 @@
 package com.druvu.web.core.internal.ws;
 
+import com.druvu.web.api.handlers.HttpCall;
 import com.druvu.web.api.handlers.HttpRequest;
 import com.druvu.web.api.handlers.WebSocketHandler;
-import com.druvu.web.core.handlers.HttpCall;
 import com.druvu.web.core.internal.ContextVars;
 import com.druvu.web.core.internal.HandlerUtils;
 import com.druvu.web.core.ws.WebSocketWrapper;

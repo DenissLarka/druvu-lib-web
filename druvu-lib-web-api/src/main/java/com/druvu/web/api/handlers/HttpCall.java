@@ -30,6 +30,10 @@ public final class HttpCall {
         return res;
     }
 
+    public PathInfo pathInfo() {
+        return req.pathInfo();
+    }
+
     public <C> C fromApplicationScope(String key) {
         if (!req.globalAttributes().has(key)) {
             throw new IllegalStateException("No component found in the application scope:" + key);

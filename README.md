@@ -225,12 +225,29 @@ gets added.
 
 ---
 
+### The engine on its own
+
+The engine has no dependencies and no opinion about HTTP. `druvu-lib-php` renders a template against a map, which is
+enough for a mail body, a report, or a template inside another web framework:
+
+```java
+PhpEngine engine = new PhpEngine(TemplateLoader.classpath("templates"), PhpEngineConfig.DEFAULTS);
+String body = engine.render("/welcome.php", Map.of("name", "Ada")).orElseThrow();
+```
+
+`TemplateLoader.directory(path)` reads from disk instead, and an implementation of `HostRequest` — five methods — gives
+`$_GET`, `$_POST`, `$_COOKIE`, `$_SERVER` and `context()` a request to read from. `druvu-lib-web-php` is exactly that
+implementation over a servlet.
+
+---
+
 ## Module Architecture
 
 ```
+druvu-lib-php          The PHP 8 layout engine on its own: no dependencies, one exported package
 druvu-lib-web-api      Pure interfaces & contracts (no runtime dependencies)
 druvu-lib-web-core     Jetty 12 server, dispatcher, auth, WebSocket engine
-druvu-lib-web-php      PHP template engine plugin (auto-discovered via ServiceLoader)
+druvu-lib-web-php      The engine as a servlet: the plugin the core discovers via ServiceLoader
 druvu-lib-web-example  Demo application with dashboard, grid, JSON and WebSocket examples
 ```
 
@@ -568,7 +585,8 @@ mvn package         # full build with Javadoc + sources
 druvu-lib-web-parent/
   druvu-lib-web-api/         # interfaces: HttpHandler, WebSocketHandler, WebConfig, AuthConfig
   druvu-lib-web-core/        # implementation: WebBoot, DispatcherServlet, auth, WebSocket
-  druvu-lib-web-php/         # PHP template engine: lexer, parser, syntax tree, runtime, function library
+  druvu-lib-php/             # PHP engine: lexer, parser, syntax tree, runtime, function library
+  druvu-lib-web-php/         # the engine as a servlet, plugged into the core
   druvu-lib-web-example/     # demo app: PHP feature pages, w2ui grid, JSON API, WebSocket chat
 ```
 

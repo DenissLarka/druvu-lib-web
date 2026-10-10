@@ -1,125 +1,66 @@
 package com.druvu.web.core.test.auth;
 
-import static org.testng.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.druvu.web.api.auth.AuthConfig;
-import com.druvu.web.api.auth.InMemoryUserStore;
-import com.druvu.web.api.auth.UserStore;
+import com.druvu.web.api.auth.BasicAuthentication;
+import java.time.Duration;
 import java.util.Set;
 import org.testng.annotations.Test;
 
-/**
- * Tests for authentication and authorization
- *
- * @author : Deniss Larka
- */
+/** The sign-in configuration builder: inline users become Basic authentication with an in-memory permission store. */
 public class TestAuthentication {
 
     @Test
-    public void testAuthConfigBuilder() {
+    public void inlineUsersBecomeBasicAuthentication() {
         AuthConfig config = AuthConfig.builder()
                 .basicAuth()
                 .realm("Test Realm")
-                .sessionTimeout(600)
                 .user("user", "pass", "generic:permission")
                 .user("admin", "secret", "generic:permission", "admin:permission")
                 .build();
-
-        assertEquals(config.authType(), "BASIC");
-        assertEquals(config.realmName(), "Test Realm");
-        assertTrue(config.sessionRenewal());
-        assertEquals(config.sessionTimeoutSeconds(), 600);
-        assertNotNull(config.userStore());
+        assertThat(config.people()).isInstanceOf(BasicAuthentication.class);
+        BasicAuthentication basic = (BasicAuthentication) config.people();
+        assertThat(basic.realm()).isEqualTo("Test Realm");
+        assertThat(basic.users()).containsOnlyKeys("user", "admin");
+        assertThat(basic.users().get("user").password()).isEqualTo("pass");
+        assertThat(config.permissions().permissions("admin"))
+                .containsExactlyInAnyOrder("generic:permission", "admin:permission");
     }
 
     @Test
-    public void testAuthConfigDefaults() {
+    public void theDefaultsAreHalfAnHourAndAPlainCookieName() {
+        AuthConfig config = AuthConfig.builder().user("user", "pass").build();
+        assertThat(config.sessionTimeout()).isEqualTo(Duration.ofMinutes(30));
+        assertThat(config.cookieName()).isEqualTo("session");
+        assertThat(((BasicAuthentication) config.people()).realm()).isEqualTo(AuthConfig.DEFAULT_REALM);
+    }
+
+    @Test
+    public void anUnknownSubjectHasNoPermissions() {
         AuthConfig config =
                 AuthConfig.builder().user("user", "pass", "generic:permission").build();
-
-        assertEquals(config.authType(), "BASIC");
-        assertEquals(config.realmName(), "Application Access");
-        assertTrue(config.sessionRenewal());
-        assertEquals(config.sessionTimeoutSeconds(), 1800);
-    }
-
-    @Test(expectedExceptions = IllegalStateException.class)
-    public void testAuthConfigBuilderRequiresUsers() {
-        AuthConfig.builder().build();
+        assertThat(config.permissions().permissions("unknown")).isEmpty();
     }
 
     @Test
-    public void testInMemoryUserStorePermissions() {
+    public void anApplicationsOwnStoreWins() {
         AuthConfig config = AuthConfig.builder()
-                .user("user", "pass", "generic:permission")
-                .user("admin", "secret", "generic:permission", "admin:permission")
+                .user("user", "pass", "ignored:permission")
+                .permissions(subject -> Set.of("from:store"))
+                .sessionTimeout(Duration.ofHours(8))
+                .cookieName("shop")
                 .build();
-
-        UserStore store = config.userStore();
-
-        Set<String> userPerms = store.permissions("user");
-        assertNotNull(userPerms);
-        assertEquals(userPerms.size(), 1);
-        assertTrue(userPerms.contains("generic:permission"));
-
-        Set<String> adminPerms = store.permissions("admin");
-        assertNotNull(adminPerms);
-        assertEquals(adminPerms.size(), 2);
-        assertTrue(adminPerms.contains("generic:permission"));
-        assertTrue(adminPerms.contains("admin:permission"));
+        assertThat(config.permissions().permissions("user")).containsExactly("from:store");
+        assertThat(config.sessionTimeout()).isEqualTo(Duration.ofHours(8));
+        assertThat(config.cookieName()).isEqualTo("shop");
     }
 
     @Test
-    public void testInMemoryUserStoreUnknownUser() {
-        AuthConfig config =
-                AuthConfig.builder().user("user", "pass", "generic:permission").build();
-
-        Set<String> permissions = config.userStore().permissions("unknown");
-        assertNotNull(permissions);
-        assertTrue(permissions.isEmpty());
-    }
-
-    @Test
-    public void testCustomUserStore() {
-        UserStore customStore = principalName -> switch (principalName) {
-            case "alice" -> Set.of("read:data", "write:data");
-            default -> Set.of();
-        };
-
-        AuthConfig config = AuthConfig.builder().userStore(customStore).build();
-
-        assertEquals(config.userStore().permissions("alice"), Set.of("read:data", "write:data"));
-        assertTrue(config.userStore().permissions("unknown").isEmpty());
-    }
-
-    @Test
-    public void testInMemoryUserStoreCredentials() {
-        AuthConfig config =
-                AuthConfig.builder().user("user", "pass", "generic:permission").build();
-
-        assertTrue(config.userStore() instanceof InMemoryUserStore);
-        InMemoryUserStore inMemory = (InMemoryUserStore) config.userStore();
-        assertEquals(inMemory.users().size(), 1);
-        assertEquals(inMemory.users().get("user").password(), "pass");
-    }
-
-    @Test
-    public void testCompletePermissionFlow() {
-        AuthConfig config = AuthConfig.builder()
-                .user("user", "pass", "generic:permission")
-                .user("admin", "secret", "generic:permission", "admin:permission")
-                .build();
-
-        // User has required permission
-        Set<String> userPerms = config.userStore().permissions("user");
-        Set<String> requiredPerms = Set.of("generic:permission");
-        assertTrue(userPerms.containsAll(requiredPerms));
-
-        // Admin has both permissions
-        Set<String> adminPerms = config.userStore().permissions("admin");
-        assertTrue(adminPerms.containsAll(Set.of("generic:permission", "admin:permission")));
-
-        // User does NOT have admin permission
-        assertFalse(userPerms.containsAll(Set.of("admin:permission")));
+    public void nothingToSignInWithIsRefused() {
+        assertThatThrownBy(() -> AuthConfig.builder().build())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("No way to sign in");
     }
 }

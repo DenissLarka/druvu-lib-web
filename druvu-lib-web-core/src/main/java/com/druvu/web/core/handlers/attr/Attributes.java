@@ -1,6 +1,5 @@
 package com.druvu.web.core.handlers.attr;
 
-import jakarta.servlet.ServletContext;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -12,10 +11,6 @@ import java.util.Set;
 public class Attributes {
 
     private final AttributesBackend backend;
-
-    public static GlobalAttributesImpl from(ServletContext context) {
-        return new GlobalAttributesImpl(new AttributesBackend.ServletContextBackend(context));
-    }
 
     /**
      * This class stays open ({@link GlobalAttributesImpl} extends it), so the constructor must not throw: a throw after

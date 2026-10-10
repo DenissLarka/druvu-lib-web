@@ -46,6 +46,7 @@ public class TestWiring {
                 .urlConfig(UrlConfig.from(HelloHandler.class))
                 .urlConfig(UrlConfig.from(JsonHandler.class))
                 .urlConfig(UrlConfig.from(SecretHandler.class, PERMISSION))
+                .urlConfig(UrlConfig.signedIn(ProfileHandler.class))
                 .urlConfig(UrlConfig.from(FormHandler.class))
                 .urlConfig(UrlConfig.from(BrokenHandler.class))
                 .urlConfig(UrlConfig.from(EchoSocketHandler.class))
@@ -117,8 +118,15 @@ public class TestWiring {
 
     @Test
     public void aProtectedHandlerRefusesAUserWithoutThePermission() {
-        // Authenticated but not authorised answers 401 today; the auth rework may make this a 403.
-        assertThat(getAs("bob", "/secret").statusCode()).isEqualTo(401);
+        assertThat(getAs("bob", "/secret").statusCode()).isEqualTo(403);
+    }
+
+    @Test
+    public void aSignedInRouteTakesAnyUserAndKnowsWho() {
+        assertThat(get("/profile").statusCode()).isEqualTo(401);
+        HttpResponse<String> response = getAs("bob", "/profile");
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.body().strip()).isEqualTo("profile of bob");
     }
 
     @Test

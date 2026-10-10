@@ -8,29 +8,37 @@
 	<parent>
 		<groupId>com.druvu</groupId>
 		<artifactId>druvu-lib-web</artifactId>
-		<version>2.0.1-SNAPSHOT</version>
+		<version>3.0.0-SNAPSHOT</version>
 	</parent>
 
 	<artifactId>druvu-lib-web-php</artifactId>
+
 	<name>DRUVU.COM / LIB / WEB / PHP</name>
-	<description>PHP template engine plugin for druvu-lib-web</description>
+
+	<description>PHP templates in druvu-lib-web: the servlet binding of druvu-lib-php, discovered by the core at boot</description>
 
 	<dependencies>
-		<!-- API module -->
+		<!-- The engine -->
+		<dependency>
+			<groupId>com.druvu</groupId>
+			<artifactId>druvu-lib-php</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<!-- The plugin contract -->
 		<dependency>
 			<groupId>com.druvu</groupId>
 			<artifactId>druvu-lib-web-api</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 
-		<!-- druvu-lib-loader -->
+		<!-- druvu-lib-loader: how the core finds this plugin -->
 		<dependency>
 			<groupId>com.druvu</groupId>
 			<artifactId>druvu-lib-loader</artifactId>
 			<version>${druvu-lib-loader.version}</version>
 		</dependency>
 
-		<!-- slf4j-api (logging facade; loader no longer leaks it transitively) -->
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
@@ -50,15 +58,11 @@
 			</exclusions>
 		</dependency>
 
-
-		<!-- spotbugs-annotations (used by lombok generated code) -->
 		<dependency>
 			<groupId>com.github.spotbugs</groupId>
 			<artifactId>spotbugs-annotations</artifactId>
 			<version>4.10.4</version>
 			<scope>provided</scope>
 		</dependency>
-
 	</dependencies>
-
 </project>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+		 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+		 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>com.druvu</groupId>
+		<artifactId>druvu-lib-web</artifactId>
+		<version>3.0.0-SNAPSHOT</version>
+	</parent>
+
+	<artifactId>druvu-lib-php</artifactId>
+
+	<name>DRUVU.COM / LIB / PHP</name>
+
+	<description>A PHP 8 layout language, executed in Java: the template engine behind druvu-lib-web, usable on its own</description>
+
+	<!-- No runtime dependencies. The engine knows nothing about servlets or Jetty; druvu-lib-web-php binds it. -->
+	<dependencies>
+		<dependency>
+			<groupId>com.github.spotbugs</groupId>
+			<artifactId>spotbugs-annotations</artifactId>
+			<version>4.10.4</version>
+			<scope>provided</scope>
+		</dependency>
+	</dependencies>
+</project>

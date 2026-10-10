@@ -1,9 +1,7 @@
 package com.druvu.web.core;
 
-import com.druvu.web.api.auth.AuthConfig;
 import com.druvu.web.api.config.UrlConfig;
 import com.druvu.web.api.config.WebConfig;
-import com.druvu.web.core.auth.JettyAuthAdapter;
 import com.druvu.web.core.internal.ConnectorsInstaller;
 import com.druvu.web.core.internal.ContextCreator;
 import com.druvu.web.core.internal.ContextVars;
@@ -60,12 +58,9 @@ public class WebBoot {
             context.setAttribute(
                     ContextVars.HTTP_DEFAULT, webConfig.urlConfigs().getFirst().url());
 
-            final AuthConfig authConfig = webConfig.authConfig();
-            if (authConfig == null) {
-                throw new IllegalStateException("AuthConfig must be provided via WebConfig.builder().authConfig(...)");
+            if (webConfig.authConfig() != null) {
+                context.setAttribute(ContextVars.AUTH_CONFIG, webConfig.authConfig());
             }
-            context.setAttribute(ContextVars.AUTH_CONFIG, authConfig);
-            context.setAttribute(ContextVars.JETTY_AUTH, new JettyAuthAdapter(authConfig));
             context.setAttribute(ContextVars.WS_OPENED, Collections.newSetFromMap(new ConcurrentHashMap<>()));
         }
 
