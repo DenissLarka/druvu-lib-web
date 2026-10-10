@@ -17,8 +17,8 @@
 <div class="dashboard-cards">
     <div class="card accent-blue">
         <h3>Handlers</h3>
-        <div class="value">5</div>
-        <div class="sub">HTTP + WebSocket</div>
+        <div class="value">11</div>
+        <div class="sub">HTTP + WebSocket + API</div>
     </div>
     <div class="card accent-green">
         <h3>Template Engine</h3>

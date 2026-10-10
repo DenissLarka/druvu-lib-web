@@ -1,10 +1,14 @@
 package com.druvu.web.example;
 
 import com.druvu.web.api.auth.AuthConfig;
+import com.druvu.web.api.auth.BearerAuthentication;
 import com.druvu.web.api.config.UrlConfig;
 import com.druvu.web.api.config.WebConfig;
 import com.druvu.web.core.WebBoot;
 import com.druvu.web.example.handlers.*;
+import com.druvu.web.example.handlers.AccountHandler;
+import com.druvu.web.example.handlers.ApiPingHandler;
+import com.druvu.web.example.handlers.TokensHandler;
 
 /**
  * @author : Deniss Larka <br>
@@ -29,10 +33,14 @@ public final class WebBootExample {
                 .urlConfig(UrlConfig.from(ExampleSocketHandler.class))
                 .urlConfig(UrlConfig.from(ExampleJsonHandler.class))
                 .urlConfig(UrlConfig.from(WsHandler.class))
+                .urlConfig(UrlConfig.signedIn(AccountHandler.class))
+                .urlConfig(UrlConfig.signedIn(TokensHandler.class))
+                .urlConfig(UrlConfig.forMachines(ApiPingHandler.class))
                 .authConfig(AuthConfig.builder()
                         .basicAuth()
                         .user("user", "pass", "generic:permission")
                         .user("admin", "admin", "generic:permission", "admin:permission")
+                        .machines(new BearerAuthentication(ExampleTokens.STORE))
                         .build())
                 .build();
 

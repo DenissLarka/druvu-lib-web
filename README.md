@@ -61,7 +61,8 @@ boot.start("/myapp");
 
 > [!TIP]
 > `./Start-Example.ps1` runs the demo app, which carries a page per feature family —
-> `/php-basics`, `/php-loops` and `/php-data`.
+> `/php-basics`, `/php-loops` and `/php-data` — plus `/account` and `/tokens` behind a sign-in (`user` / `pass`), and
+> `/api-ping` for a machine holding a token from that page.
 
 ---
 
@@ -158,7 +159,7 @@ markup-producing helpers need no `raw()`.
 | **Composition** | `include`, `require`, `*_once`; the partial shares the including page's variables |
 | **Functions** | **115** built in: escaping, strings, arrays, sorting, type checks, date display, maths |
 | **Closures** | arrow functions `fn($x) => …`, for `array_map` and friends |
-| **Host data** | `$_GET`, `$_POST`, `$_REQUEST`, `$_COOKIE`, `$_SERVER`, plus whatever the handler passes |
+| **Host data** | `$_GET`, `$_POST`, `$_REQUEST`, `$_COOKIE`, `$_SERVER` (with `REMOTE_USER` = the signed-in subject), plus whatever the handler passes |
 
 ```php
 <?php $items = ["pen" => 2, "cup" => 5]; ?>
@@ -218,6 +219,8 @@ The demo app carries a worked page per family — `/php-basics`, `/php-loops`, `
   a literal, so `.` is always concatenation.
 - **No references, no bitwise operators, no `@` suppression.** The sorts (`sort`, `usort`, …) rearrange the variable
   you give them, and are the only exception.
+- **The dump functions are off.** `print_r`, `var_export` and `var_dump` print in the engine's own format, and only when
+  the host turns the debug functions on; the servlet does not. A page that needs a value as text uses `json_encode`.
 
 Anything the dialect does not have produces an error naming what is missing, at load time where possible — never a
 silently different page. If a function you need is absent, [open an issue](../../issues); the library is where it
@@ -351,7 +354,7 @@ WebConfig.builder()
     .staticPath("/assets/*")                   // additional static resource path
     .globalObject("myService", myService)      // application-scoped object
     .urlConfig(UrlConfig.from(MyHandler.class)) // register handler
-    .authConfig(authConfig)                    // authentication config
+    .authConfig(authConfig)                    // optional: without it, every route is public
     .build();
 ```
 
@@ -377,56 +380,106 @@ public void handle(HttpRequest request, HttpResponse response) {
 
 ## Authentication & Authorization
 
-### Basic Auth with Inline Users
+Sign-in runs in Jetty's own security handler, before any handler of yours: an anonymous visitor to a protected route is
+challenged or sent to the provider by Jetty, and what reaches your code is either public or already signed in. Without
+an `AuthConfig`, every route is public.
+
+Three ways in:
+
+| Who | How | When |
+|---|---|---|
+| People | Basic authentication with inline users | demos, tests, a tool behind a VPN |
+| People | OpenID Connect through one provider | production: Google alone, or a broker fronting Google, GitHub and Apple |
+| Machines | a bearer token in the `Authorization` header | a desktop app or a script calling the application's API |
+
+### Routes say who may reach them
+
+```java
+.urlConfig(UrlConfig.from(HomeHandler.class))                                // public
+.urlConfig(UrlConfig.signedIn(AccountHandler.class))                         // any signed-in user
+.urlConfig(UrlConfig.from(OrdersHandler.class, "orders:read"))               // signed in, with this permission
+.urlConfig(UrlConfig.from(AdminHandler.class, "admin:all", "orders:read"))   // both permissions
+.urlConfig(UrlConfig.forMachines(GenerateHandler.class, "ea:generate"))      // a bearer token, with this permission
+```
+
+Anonymous on a protected route: 401 with a challenge under Basic, a redirect to the provider under OpenID. Signed in
+without one of the permissions: 403. A route for machines never takes a browser sign-in, and a people route never
+takes a token.
+
+### People: Basic authentication
 
 ```java
 AuthConfig.builder()
     .basicAuth()
     .realm("My Application")
-    .sessionTimeout(3600)                // 1 hour (default: 1800s)
-    .sessionRenewal(true)                // extend session on activity (default: true)
-    .user("admin", "secret", "admin:all", "user:read")
-    .user("viewer", "pass", "user:read")
+    .user("admin", "secret", "admin:all", "orders:read")
+    .user("viewer", "pass", "orders:read")
     .build()
 ```
 
-### Custom UserStore
+The inline users double as the permission store. Sessions default to 30 minutes idle and a cookie named `session`;
+`.sessionTimeout(Duration.ofHours(8))` and `.cookieName("shop")` change that.
 
-For production use with databases, LDAP, or any external source — implement the `UserStore` interface:
-
-```java
-public interface UserStore {
-    Set<String> permissions(String principalName);
-}
-```
+### People: OpenID Connect
 
 ```java
 AuthConfig.builder()
-    .basicAuth()
-    .userStore(new JdbcUserStore(dataSource))
+    .people(OpenIdAuthentication.of(
+        "https://accounts.google.com",                              // the issuer; the rest is discovered
+        clientId, clientSecret))
+    .permissions(subject -> repository.permissionsOf(subject))      // what a signed-in subject may do
     .build()
 ```
 
-### Per-URL Permissions
-
-Permissions are defined when registering handlers:
+The provider sends the browser back to `/auth/callback` under your context, `/auth/logout` ends the session, and the
+`email` and `profile` scopes fill the identity's claims; all of it is configurable on `OpenIdAuthentication`. The
+permission store is asked once per sign-in and the answer travels with the session, so a database-backed store is not
+hit on every request. A subject the store does not know is signed in with no permissions, which is how registration
+works: the handler of a signed-in route sees an unknown subject and creates its row. No password ever reaches the
+application.
 
 ```java
-.urlConfig(UrlConfig.from(PublicHandler.class)) // no auth required
-.urlConfig(UrlConfig.from(UserHandler.class, "user:read")) // requires user:read
-.urlConfig(UrlConfig.from(AdminHandler.class, "admin:all", "user:read")) // requires both
+public void handle(HttpRequest request, HttpResponse response) {
+    AuthUserIdentity user = request.user().orElseThrow();   // on a signed-in route it is always there
+    user.subject();                                         // the provider's stable id
+    user.email(); user.displayName();                       // Optional: the claims, when the provider sent them
+    user.getPermissions();
+}
 ```
 
-The dispatcher checks permissions before invoking the handler. Unauthorized requests receive a 401 response.
+Templates see the subject as `$_SERVER['REMOTE_USER']`.
+
+### Machines: bearer tokens
+
+```java
+AuthConfig.builder()
+    .people(…)
+    .permissions(…)
+    .machines(new BearerAuthentication(presented -> repository.subjectOf(ApiTokens.hash(presented))))
+    .build()
+```
+
+A route registered with `UrlConfig.forMachines(…)` requires `Authorization: Bearer <token>`; the token store answers
+which subject the token belongs to, and the permission store what that subject may do. The application hands tokens
+out and keeps only their hash:
+
+```java
+String token = ApiTokens.generate();                     // 256 random bits, URL-safe; show it once
+repository.save(user.subject(), ApiTokens.hash(token));
+```
+
+A machine gets 401 with `WWW-Authenticate: Bearer` without a valid token, and 403 with one whose subject lacks the
+permission. No session is created for a machine.
 
 ### Auth in WebSocket
 
-WebSocket connections authenticate via the `Authorization` header during the upgrade handshake. Once connected, the user identity is available on the session:
+A WebSocket upgrade passes through the same gate as any request: the session cookie, a bearer token or a Basic header
+on the upgrade request. Once connected, the user identity is available on the session:
 
 ```java
 public void onConnect(Session session, Sessions sessions) {
     session.user().ifPresent(user ->
-        System.out.println("Connected: " + user.getUserPrincipal().getName()));
+        System.out.println("Connected: " + user.subject()));
 }
 ```
 

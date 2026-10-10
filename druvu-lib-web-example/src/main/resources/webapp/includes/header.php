@@ -29,6 +29,9 @@
             { type: 'button', id: 'table', text: 'Table',  icon: 'w2ui-icon-columns' },
             { type: 'button', id: 'json',  text: 'JSON',   icon: 'w2ui-icon-info' },
             { type: 'button', id: 'ws',    text: 'Socket', icon: 'w2ui-icon-reload' },
+            { type: 'break' },
+            { type: 'button', id: 'account', text: 'Account', icon: 'w2ui-icon-check' },
+            { type: 'button', id: 'tokens',  text: 'Tokens',  icon: 'w2ui-icon-settings' },
             { type: 'spacer' },
             { type: 'html', html: '<span style="color:#888; font-size:0.85em; padding:0 12px;">DRUVU-LIB Web</span>' }
         ],
@@ -40,7 +43,9 @@
                 data:   '<?= link('php-data') ?>',
                 table: '<?= link('example-table') ?>',
                 json:  '<?= link('example-json') ?>',
-                ws:    '<?= link('example-socket') ?>'
+                ws:    '<?= link('example-socket') ?>',
+                account: '<?= link('account') ?>',
+                tokens:  '<?= link('tokens') ?>'
             };
             if (routes[event.target]) window.location = routes[event.target];
         }
