@@ -16,6 +16,6 @@ public final class WhoamiHandler implements HttpHandler {
                 "email", user.email().orElse(""),
                 "displayName", user.displayName().orElse(""),
                 "permissions", String.join(",", user.getPermissions()));
-        response.commitContent("application/json", new Gson().toJson(seen));
+        response.commit("application/json", new Gson().toJson(seen));
     }
 }

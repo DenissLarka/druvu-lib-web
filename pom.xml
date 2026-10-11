@@ -26,6 +26,8 @@
 		<palantir-java-format.version>2.90.0</palantir-java-format.version>
 
 		<druvu-lib-loader.version>1.1.2</druvu-lib-loader.version>
+
+		<druvu-lib-json.version>1.1.0</druvu-lib-json.version>
 	</properties>
 
 	<scm>
@@ -56,8 +58,8 @@
 		<module>druvu-lib-web-core</module>
 		<module>druvu-lib-php</module>
 		<module>druvu-lib-web-php</module>
-		<!-- Example -->
-		<module>druvu-lib-web-example</module>
+		<!-- Examples: runnable starting points, nothing published -->
+		<module>druvu-lib-web-examples</module>
 	</modules>
 
 
@@ -86,12 +88,6 @@
 					<artifactId>slf4j-api</artifactId>
 				</exclusion>
 			</exclusions>
-		</dependency>
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-simple</artifactId>
-			<version>${slf4j.version}</version>
-			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.assertj</groupId>
@@ -250,7 +246,10 @@
 								</dependencyConvergence>
 								<reactorModuleConvergence/>
 								<requireJavaVersion>
-									<version>${java.version}</version>
+									<!-- The 25 line only: palantir-java-format (through 2.102.0) cannot run on newer javac internals,
+									     and its failure deep inside Spotless is unreadable. Switch with Use-Jdk25.ps1. -->
+									<version>[25,26)</version>
+									<message>druvu-lib-web builds on JDK 25 (java.version); you are on ${java.runtime.version}. Switch with Use-Jdk25.ps1.</message>
 								</requireJavaVersion>
 							</rules>
 						</configuration>

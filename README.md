@@ -60,9 +60,9 @@ boot.start("/myapp");
 ```
 
 > [!TIP]
-> `./Start-Example.ps1` runs the demo app, which carries a page per feature family —
-> `/php-basics`, `/php-loops` and `/php-data` — plus `/account` and `/tokens` behind a sign-in (`user` / `pass`), and
-> `/api-ping` for a machine holding a token from that page.
+> `./Start-Example.ps1` runs the demo site, which carries a page per feature family —
+> `/php-basics`, `/php-loops` and `/php-data` — plus `/account` behind a sign-in (`user` / `pass`).
+> `./Start-Example.ps1 mcp` runs the other example, an MCP server for machines, and prints its token.
 
 ---
 
@@ -247,11 +247,12 @@ implementation over a servlet.
 ## Module Architecture
 
 ```
-druvu-lib-php          The PHP 8 layout engine on its own: no dependencies, one exported package
-druvu-lib-web-api      Pure interfaces & contracts (no runtime dependencies)
-druvu-lib-web-core     Jetty 12 server, dispatcher, auth, WebSocket engine
-druvu-lib-web-php      The engine as a servlet: the plugin the core discovers via ServiceLoader
-druvu-lib-web-example  Demo application with dashboard, grid, JSON and WebSocket examples
+druvu-lib-php              The PHP 8 layout engine on its own: no dependencies, one exported package
+druvu-lib-web-api          Pure interfaces & contracts (no runtime dependencies)
+druvu-lib-web-core         Jetty 12 server, dispatcher, auth, WebSocket engine
+druvu-lib-web-php          The engine as a servlet: the plugin the core discovers via ServiceLoader
+druvu-lib-web-example-web  The demo site: PHP feature pages, w2ui grid, JSON, WebSocket, a page behind sign-in
+druvu-lib-web-example-mcp  An MCP server on a route for machines, JSON through druvu-lib-json, a token at boot
 ```
 
 The API module defines all contracts. The core module provides the Jetty-based implementation. The PHP engine is discovered at boot via `ServiceLoader`, so the core never depends on it directly.
@@ -283,7 +284,7 @@ public class ProductHandler implements HttpHandler {
 }
 ```
 
-If the handler does not commit the response (no `commitContent()`, no `sendRedirect()`), the framework automatically forwards to the matching template — e.g. `ProductHandler` forwards to `product.php`.
+If the handler does not commit the response (no `commit()`, no `sendRedirect()`), the framework automatically forwards to the matching template — e.g. `ProductHandler` forwards to `product.php`.
 
 #### JSON Responses
 
@@ -294,7 +295,7 @@ public class ApiHandler implements HttpHandler {
     @Override
     public void handle(HttpRequest request, HttpResponse response) {
         var data = Map.of("status", "ok", "count", "42");
-        response.commitContent("application/json", new Gson().toJson(data));
+        response.commit("application/json", new Gson().toJson(data));
     }
 }
 ```
@@ -487,6 +488,37 @@ public void onConnect(Session session, Sessions sessions) {
 
 ---
 
+## An MCP server on a route for machines
+
+`druvu-lib-web-example-mcp` is an MCP server over Streamable HTTP, protocol `2025-06-18`: one `Route.forMachines(McpHandler.class)`,
+a bearer token generated and printed at boot, JSON-RPC in a POST body and JSON back. No sessions and no server stream,
+so GET and DELETE answer 405; a foreign `Origin` answers 403, an unknown `MCP-Protocol-Version` 400. Its druvu
+dependencies are core, api and [druvu-lib-json](https://github.com/DenissLarka/druvu-lib-json), which builds the
+envelopes and reads the requests; no template engine. Two tools, `echo` and `time_now`. Run it and point a client at it:
+
+```bash
+./Start-Example.ps1 mcp                                              # prints the token
+./druvu-lib-web-examples/druvu-lib-web-example-mcp/Invoke-McpExample.ps1 -Token <token>   # handshake, tool list, both tools
+claude mcp add --transport http druvu-example http://localhost:8082/mcp --header "Authorization: Bearer <token>"
+```
+
+Or by hand, one JSON-RPC message per POST:
+
+```bash
+curl -s -X POST http://localhost:8082/mcp -H "Authorization: Bearer <token>" -H "Content-Type: application/json" \
+     -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"echo","arguments":{"text":"hi"}}}'
+```
+
+The server is three small classes: `McpTransport` reads a request into an `McpCall`, or into the `Reply` it already
+knows for another method, a foreign origin, an unknown version, unreadable JSON or a notification; `McpServer` answers a
+call; a `Reply` writes itself. The handler is a `switch` over the two.
+
+An application with machine routes only needs no browser side: `AuthConfig.builder().machines(...)` alone is a way in,
+and `WebConfig.build()` refuses a route whose audience has none — a signed-in route without people authentication, a
+machine route without `machines(...)`.
+
+---
+
 ## WebJars Integration
 
 Use any JavaScript or CSS library from [webjars.org](https://www.webjars.org/) — just add the Maven dependency and reference it with `webjar()`:
@@ -592,8 +624,10 @@ that constant back into a lookup; nothing here pretends it already is one.
 | `paramInfo()`        | Query/form parameters with typed getters |
 | `user()`             | Authenticated user identity (if any)     |
 | `globalAttributes()` | Application-scoped objects               |
-| `method()`           | HTTP method (`GET`, `POST`)              |
+| `method()`           | The method as `HttpMethod`; `isGet()`, `isPost()`; `methodName()` for the token |
 | `contentType()`      | Request content type                     |
+| `header(name)`       | A request header, if present             |
+| `body()`             | The body as text, UTF-8 unless declared; empty for a form body |
 | `mainPath()`         | First URL segment (handler name)         |
 
 ### PathInfo
@@ -619,9 +653,12 @@ request.paramInfo().getOrDefault("sort", "relevance");   // "relevance"
 
 | Method | Description |
 |---|---|
-| `commitContent(contentType, body)` | Write response and commit (skips template) |
+| `header(name, value)` | Set a response header, before committing |
+| `commit(contentType, body)` | Commit 200 with this body, UTF-8; no template runs |
+| `commit(status, contentType, body)` | The same with another status |
+| `commit(status)` | Commit a bare status: 202, 204, 405 with `Allow` set before |
 | `sendRedirect(url)` | HTTP redirect |
-| `sendError(code)` | Send error status |
+| `sendError(code)` | Send error status through the error handler |
 | `isCommitted()` | Check if response was already written |
 
 ---
@@ -641,19 +678,21 @@ mvn package         # full build with Javadoc + sources
 ## Project Structure
 
 ```
-druvu-lib-web-parent/
-  druvu-lib-web-api/         # interfaces: HttpHandler, WebSocketHandler, WebConfig, AuthConfig
-  druvu-lib-web-core/        # implementation: WebBoot, DispatcherServlet, auth, WebSocket
+druvu-lib-web/
+  druvu-lib-web-api/         # interfaces: HttpHandler, WebSocketHandler, WebConfig, Route, AuthConfig
+  druvu-lib-web-core/        # implementation: WebBoot, DispatcherServlet, security, WebSocket
   druvu-lib-php/             # PHP engine: lexer, parser, syntax tree, runtime, function library
   druvu-lib-web-php/         # the engine as a servlet, plugged into the core
-  druvu-lib-web-example/     # demo app: PHP feature pages, w2ui grid, JSON API, WebSocket chat
+  druvu-lib-web-examples/            # runnable starting points, nothing published
+    druvu-lib-web-example-web/       # the demo site: PHP feature pages, w2ui grid, JSON, WebSocket, sign-in
+    druvu-lib-web-example-mcp/       # an MCP server over Streamable HTTP, JSON through druvu-lib-json
 ```
 
 ### Tech Stack
 
 | Component        | Technology                                   |
 |------------------|----------------------------------------------|
-| Server           | Jetty 12.1.6 (EE10 Servlet API)              |
+| Server           | Jetty 12.1 (EE10 Servlet API)                |
 | Language         | Java 25                                      |
 | Build            | Maven                                        |
 | Template Engine  | PHP dialect implemented in Java              |

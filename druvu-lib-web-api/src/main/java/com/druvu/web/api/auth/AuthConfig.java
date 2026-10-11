@@ -8,8 +8,8 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * Everything an application decides about signing in: how people do it, what they may do once in, and how long a
- * session lasts.
+ * Everything an application decides about signing in: how people do it, how machines do it, what a subject may do once
+ * in, and how long a session lasts.
  *
  * <pre>{@code
  * AuthConfig.builder()                         // a demo: inline users
@@ -22,6 +22,10 @@ import java.util.Set;
  *     .permissions(subject -> repository.permissionsOf(subject))
  *     .sessionTimeout(Duration.ofHours(8))
  *     .machines(new BearerAuthentication(presented -> repository.subjectOf(ApiTokens.hash(presented))))
+ *     .build();
+ *
+ * AuthConfig.builder()                         // an API with no browser side
+ *     .machines(new BearerAuthentication(tokens))
  *     .build();
  * }</pre>
  *
@@ -48,7 +52,7 @@ public final class AuthConfig {
             BearerAuthentication machines,
             Duration sessionTimeout,
             String cookieName) {
-        this.people = Objects.requireNonNull(people, "people");
+        this.people = people;
         this.permissions = Objects.requireNonNull(permissions, "permissions");
         this.machines = machines;
         this.sessionTimeout = Objects.requireNonNull(sessionTimeout, "sessionTimeout");
@@ -59,9 +63,9 @@ public final class AuthConfig {
         return new AuthConfigBuilder();
     }
 
-    /** How people sign in. */
-    public Authentication people() {
-        return people;
+    /** How people sign in, or empty for an application that serves machines only. */
+    public Optional<Authentication> people() {
+        return Optional.ofNullable(people);
     }
 
     /** What a signed-in subject may do. */
@@ -139,20 +143,25 @@ public final class AuthConfig {
             return basicAuth();
         }
 
-        /** @throws IllegalStateException when there is no way to sign in, or two: {@link #people} and Basic together */
+        /**
+         * @throws IllegalStateException when there is no way to sign in, or two for people: {@link #people} and Basic
+         */
         public AuthConfig build() {
             if (people != null && basic) {
                 throw new IllegalStateException(
                         "Two ways in for people: people(...) and Basic authentication; choose one");
+            }
+            if (basic && inlineUsers.isEmpty()) {
+                throw new IllegalStateException("basicAuth() without a user(...): nobody could sign in");
             }
             Authentication how = people;
             PermissionStore what = permissions;
             if (how == null && !inlineUsers.isEmpty()) {
                 how = new BasicAuthentication(realm, inlineUsers);
             }
-            if (how == null) {
+            if (how == null && machines == null) {
                 throw new IllegalStateException(
-                        "No way to sign in: give people(...) or basicAuth() with at least one user(...)");
+                        "No way to sign in: give people(...), basicAuth() with at least one user(...), or machines(...)");
             }
             if (what == null) {
                 what = how instanceof BasicAuthentication basic ? inlinePermissions(basic) : subject -> Set.of();

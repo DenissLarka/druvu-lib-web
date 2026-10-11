@@ -8,6 +8,6 @@ import com.druvu.web.api.handlers.HttpResponse;
 public final class ApiSecretHandler implements HttpHandler {
     @Override
     public void handle(HttpRequest request, HttpResponse response) {
-        response.commitContent("application/json", "{\"secret\":true}");
+        response.commit("application/json", "{\"secret\":true}");
     }
 }

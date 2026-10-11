@@ -5,8 +5,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.druvu.web.api.auth.AuthConfig;
 import com.druvu.web.api.auth.BasicAuthentication;
+import com.druvu.web.api.auth.BearerAuthentication;
 import com.druvu.web.api.auth.OpenIdAuthentication;
 import java.time.Duration;
+import java.util.Optional;
 import java.util.Set;
 import org.testng.annotations.Test;
 
@@ -23,8 +25,8 @@ public class TestAuthentication {
                 .user("user", "pass", "generic:permission")
                 .user("admin", "secret", "generic:permission", "admin:permission")
                 .build();
-        assertThat(config.people()).isInstanceOf(BasicAuthentication.class);
-        BasicAuthentication basic = (BasicAuthentication) config.people();
+        assertThat(config.people()).containsInstanceOf(BasicAuthentication.class);
+        BasicAuthentication basic = (BasicAuthentication) config.people().orElseThrow();
         assertThat(basic.realm()).isEqualTo("Test Realm");
         assertThat(basic.users()).containsOnlyKeys("user", "admin");
         assertThat(basic.users().get("user").password()).isEqualTo("pass");
@@ -37,7 +39,8 @@ public class TestAuthentication {
         AuthConfig config = AuthConfig.builder().user("user", "pass").build();
         assertThat(config.sessionTimeout()).isEqualTo(Duration.ofMinutes(30));
         assertThat(config.cookieName()).isEqualTo("session");
-        assertThat(((BasicAuthentication) config.people()).realm()).isEqualTo(AuthConfig.DEFAULT_REALM);
+        assertThat(((BasicAuthentication) config.people().orElseThrow()).realm())
+                .isEqualTo(AuthConfig.DEFAULT_REALM);
     }
 
     @Test
@@ -68,6 +71,23 @@ public class TestAuthentication {
                         .build())
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Two ways in");
+    }
+
+    @Test
+    public void machinesAloneAreAWayIn() {
+        AuthConfig config = AuthConfig.builder()
+                .machines(new BearerAuthentication(token -> Optional.empty()))
+                .build();
+        assertThat(config.people()).isEmpty();
+        assertThat(config.machines()).isPresent();
+        assertThat(config.permissions().permissions("anyone")).isEmpty();
+    }
+
+    @Test
+    public void basicAuthWithoutUsersIsRefused() {
+        assertThatThrownBy(() -> AuthConfig.builder().basicAuth().build())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("basicAuth() without a user");
     }
 
     @Test

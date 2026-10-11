@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The example's console log: a bracketed timestamp, the thread, the level, the class alone in brackets, the message.
+     Jetty's own lines are kept to warnings, so a boot reads as the few lines that carry news. -->
+<configuration>
+	<appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<pattern>[%d{yyyy-MM-dd HH:mm:ss.SSS}] [%thread] %-5level [%logger{0}] %msg%n</pattern>
+		</encoder>
+	</appender>
+	<logger name="org.eclipse.jetty" level="WARN"/>
+	<!-- Inside the uber jar the base resource is a jar:nested: URL, which Jetty reports as an alias at every boot; the
+	     core's alias check admits exactly these, so the two warnings carry no news here. -->
+	<logger name="org.eclipse.jetty.server.handler.ContextHandler" level="ERROR"/>
+	<logger name="org.eclipse.jetty.ee10.servlet.ServletContextHandler" level="ERROR"/>
+	<root level="INFO">
+		<appender-ref ref="CONSOLE"/>
+	</root>
+</configuration>

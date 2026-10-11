@@ -8,9 +8,11 @@ import com.druvu.web.core.security.SecuritySetup;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
+import org.eclipse.jetty.util.resource.Resource;
 
 /**
  * @author Deniss Larka <br>
@@ -21,9 +23,9 @@ public class ContextCreator {
 
     public static ServletContextHandler create(WebConfig webConfig, String contextPath) {
         ServletContextHandler webappContext = new ServletContextHandler(contextPath, ServletContextHandler.NO_SESSIONS);
-        ResourcesSetup resourcesSetup =
-                new ResourcesSetup(webConfig.serveFromDirectory().orElse(null));
-        webappContext.setBaseResource(resourcesSetup.call());
+        Optional<Resource> base =
+                new ResourcesSetup(webConfig.serveFromDirectory().orElse(null)).call();
+        base.ifPresent(webappContext::setBaseResource);
 
         // When this library is packaged inside an executable jar (e.g. a Spring Boot
         // fat jar), the webapp/static/webjar resources are exposed via `jar:nested:` URLs
@@ -42,7 +44,11 @@ public class ContextCreator {
         // Core servlets
         List<Consumer<ServletContextHandler>> setups = new ArrayList<>();
         setups.add(new DispatcherServletSetup());
-        setups.add(new DefaultServletSetup(webConfig.staticPaths()));
+        if (base.isPresent()) {
+            setups.add(new DefaultServletSetup(webConfig.staticPaths()));
+        } else {
+            log.info("No static files: no webapp on the classpath, no WebJars, no directory given");
+        }
         setups.add(new WebSocketSetup());
 
         // Discover and register template engine plugins

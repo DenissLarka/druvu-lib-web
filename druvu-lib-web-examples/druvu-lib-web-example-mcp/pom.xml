@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>com.druvu</groupId>
+		<artifactId>druvu-lib-web-examples</artifactId>
+		<version>3.0.0-SNAPSHOT</version>
+	</parent>
+
+	<artifactId>druvu-lib-web-example-mcp</artifactId>
+
+	<name>DRUVU.COM / LIB / WEB / EXAMPLES / MCP</name>
+	<description>An MCP server over Streamable HTTP on a route for machines: core, api and druvu-lib-json; no template engine; a bearer token printed at boot.</description>
+
+	<dependencies>
+		<!-- The library: core brings api. No druvu-lib-web-php here, which is the point of this example. -->
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>druvu-lib-web-core</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<!-- JSON-RPC envelopes, tool results and the request body: druvu-lib-json over the Gson the core brings anyway -->
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>druvu-lib-json-gson</artifactId>
+			<version>${druvu-lib-json.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.code.gson</groupId>
+			<artifactId>gson</artifactId>
+			<version>${gson.version}</version>
+		</dependency>
+		<!-- Logging -->
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>${slf4j.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-classic</artifactId>
+			<version>${logback.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.github.spotbugs</groupId>
+			<artifactId>spotbugs-annotations</artifactId>
+			<version>4.10.4</version>
+			<scope>provided</scope>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<!-- Tests compile on the classpath, as in core: the test client needs java.net.http, which the module does not. -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>default-testCompile</id>
+						<configuration>
+							<useModulePath>false</useModulePath>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>${maven-surefire-plugin.version}</version>
+				<configuration>
+					<!-- The server runs on the classpath (the uber jar), so its tests do too. -->
+					<useModulePath>false</useModulePath>
+					<properties>
+						<property>
+							<name>usedefaultlisteners</name>
+							<value>false</value>
+						</property>
+					</properties>
+				</configuration>
+			</plugin>
+			<!-- An executable uber jar, as for druvu-lib-web-example-web: `java -jar target/druvu-lib-web-example-mcp-*.jar`. -->
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<version>${spring-boot.version}</version>
+				<executions>
+					<execution>
+						<id>uber-jar</id>
+						<goals>
+							<goal>repackage</goal>
+						</goals>
+						<configuration>
+							<mainClass>com.druvu.web.example.mcp.McpExample</mainClass>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>

@@ -8,6 +8,6 @@ import com.druvu.web.api.handlers.HttpResponse;
 public final class ApiStatusHandler implements HttpHandler {
     @Override
     public void handle(HttpRequest request, HttpResponse response) {
-        response.commitContent("application/json", "{\"status\":\"ok\"}");
+        response.commit("application/json", "{\"status\":\"ok\"}");
     }
 }

@@ -9,6 +9,6 @@ public final class GreetingHandler implements HttpHandler {
     @Override
     public void handle(HttpRequest request, HttpResponse response) {
         String greeting = request.globalAttributes().get("greeting");
-        response.commitContent("text/plain", greeting);
+        response.commit("text/plain", greeting);
     }
 }

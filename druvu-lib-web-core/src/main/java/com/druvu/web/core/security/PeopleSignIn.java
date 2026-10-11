@@ -1,6 +1,7 @@
 package com.druvu.web.core.security;
 
 import com.druvu.web.api.auth.AuthConfig;
+import com.druvu.web.api.auth.Authentication;
 import com.druvu.web.api.auth.BasicAuthentication;
 import com.druvu.web.api.auth.OpenIdAuthentication;
 import org.eclipse.jetty.security.LoginService;
@@ -16,8 +17,8 @@ import org.eclipse.jetty.security.authentication.LoginAuthenticator;
  */
 record PeopleSignIn(LoginAuthenticator authenticator, LoginService loginService, String realm) {
 
-    static PeopleSignIn of(AuthConfig auth) {
-        return switch (auth.people()) {
+    static PeopleSignIn of(Authentication people, AuthConfig auth) {
+        return switch (people) {
             case BasicAuthentication basic ->
                 new PeopleSignIn(new BasicAuthenticator(), LoginServices.forBasic(basic, auth), basic.realm());
             case OpenIdAuthentication openId -> OpenIdSetup.signIn(openId, auth);

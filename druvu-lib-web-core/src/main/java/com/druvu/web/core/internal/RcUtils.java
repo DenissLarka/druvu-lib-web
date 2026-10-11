@@ -15,8 +15,9 @@ public final class RcUtils {
 
     private RcUtils() {}
 
+    /** Every classpath root that has this directory, in classpath order; empty when none has. */
     @SneakyThrows
-    public static Resource resources(String resource) {
+    public static List<Resource> resourceList(String resource) {
         Enumeration<URL> urls = Thread.currentThread().getContextClassLoader().getResources(resource);
         List<Resource> result = new ArrayList<>();
         while (urls.hasMoreElements()) {
@@ -24,7 +25,7 @@ public final class RcUtils {
             String baseUrlStr = url.toExternalForm();
             result.add(ResourceFactory.lifecycle().newResource(baseUrlStr));
         }
-        return ResourceFactory.combine(result);
+        return result;
     }
 
     public static Resource resource(String resource) throws IOException {

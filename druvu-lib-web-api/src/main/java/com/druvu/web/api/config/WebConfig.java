@@ -159,7 +159,11 @@ public final class WebConfig {
             return this;
         }
 
-        /** @throws IllegalStateException without a route, or with two routes on one URL */
+        /**
+         * @throws IllegalStateException without a route, with two routes on one URL, or with a route whose audience has
+         *     no way to sign in: signed-in people without {@code people(...)} or Basic users, machines without
+         *     {@code machines(...)}
+         */
         public WebConfig build() {
             if (routes.isEmpty()) {
                 throw new IllegalStateException(
@@ -173,8 +177,24 @@ public final class WebConfig {
                             + other.handlerClass().getName() + " and "
                             + route.handlerClass().getName());
                 }
+                requireAWayIn(route);
             }
             return new WebConfig(this);
+        }
+
+        private void requireAWayIn(Route<?> route) {
+            boolean people = authConfig != null && authConfig.people().isPresent();
+            boolean machines = authConfig != null && authConfig.machines().isPresent();
+            if (route.audience() == Audience.PEOPLE && !people) {
+                throw new IllegalStateException("/" + route.url()
+                        + " is for signed-in people, but there is no way for people to sign in:"
+                        + " give authConfig(...) with people(...) or basicAuth() users");
+            }
+            if (route.audience() == Audience.MACHINES && !machines) {
+                throw new IllegalStateException("/" + route.url()
+                        + " is for machines, but there is no way for machines to sign in:"
+                        + " give authConfig(...) with machines(...)");
+            }
         }
     }
 }

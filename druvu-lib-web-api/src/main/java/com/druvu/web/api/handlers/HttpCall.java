@@ -8,8 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public final class HttpCall {
 
-    private static final String HTTP_METHOD_POST = "POST";
-    private static final String HTTP_METHOD_GET = "GET";
     private final HttpRequest req;
     private final HttpResponse res;
 
@@ -49,11 +47,11 @@ public final class HttpCall {
      * =============== METHOD =====================
      */
     public boolean isGet() {
-        return HTTP_METHOD_GET.equalsIgnoreCase(request().method());
+        return request().isGet();
     }
 
     public boolean isPost() {
-        return HTTP_METHOD_POST.equalsIgnoreCase(request().method());
+        return request().isPost();
     }
 
     @Override

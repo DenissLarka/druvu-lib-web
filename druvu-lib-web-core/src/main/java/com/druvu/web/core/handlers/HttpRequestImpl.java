@@ -2,6 +2,7 @@ package com.druvu.web.core.handlers;
 
 import com.druvu.web.api.auth.AuthUserIdentity;
 import com.druvu.web.api.handlers.GlobalAttributes;
+import com.druvu.web.api.handlers.HttpMethod;
 import com.druvu.web.api.handlers.HttpRequest;
 import com.druvu.web.api.handlers.ParamInfo;
 import com.druvu.web.api.handlers.PathInfo;
@@ -12,7 +13,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.Part;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.UncheckedIOException;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.Principal;
 import java.util.HashMap;
@@ -28,6 +32,7 @@ public final class HttpRequestImpl implements HttpRequest {
 
     private static final String ANONYMOUS = "ANONYMOUS";
     private static final String MULTIPART_FORM_DATA = "multipart/form-data";
+    private static final String FORM_URLENCODED = "application/x-www-form-urlencoded";
 
     private final Optional<AuthUserIdentity> authUserOpt;
     private final PathInfo pathInfo;
@@ -35,6 +40,7 @@ public final class HttpRequestImpl implements HttpRequest {
     private final DispatcherType dispatcherType;
     private final GlobalAttributes globalAttributes;
     private final HttpServletRequest request;
+    private String body;
 
     public HttpRequestImpl(HttpServletRequest request, Optional<AuthUserIdentity> identityOpt) {
         this.request = Objects.requireNonNull(request);
@@ -94,12 +100,52 @@ public final class HttpRequestImpl implements HttpRequest {
     }
 
     @Override
+    public Optional<String> header(String name) {
+        return Optional.ofNullable(request.getHeader(name));
+    }
+
+    @Override
+    public String body() {
+        if (body == null) {
+            body = readBody();
+        }
+        return body;
+    }
+
+    private String readBody() {
+        if (isForm(request.getContentType())) {
+            return "";
+        }
+        try (InputStream in = request.getInputStream()) {
+            return new String(in.readAllBytes(), charset());
+        } catch (IOException e) {
+            throw new UncheckedIOException("The request body could not be read", e);
+        }
+    }
+
+    private Charset charset() {
+        String encoding = request.getCharacterEncoding();
+        return encoding == null ? StandardCharsets.UTF_8 : Charset.forName(encoding);
+    }
+
+    private static boolean isForm(String contentType) {
+        return contentType != null
+                && (contentType.regionMatches(true, 0, FORM_URLENCODED, 0, FORM_URLENCODED.length())
+                        || contentType.regionMatches(true, 0, MULTIPART_FORM_DATA, 0, MULTIPART_FORM_DATA.length()));
+    }
+
+    @Override
     public DispatcherType dispatcherType() {
         return dispatcherType;
     }
 
     @Override
-    public String method() {
+    public HttpMethod method() {
+        return HttpMethod.of(request.getMethod());
+    }
+
+    @Override
+    public String methodName() {
         return request.getMethod();
     }
 

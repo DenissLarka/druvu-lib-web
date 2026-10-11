@@ -54,6 +54,7 @@ public class TestWiring {
                 .staticPath("/assets/*")
                 .route(Route.forEveryone(PlainHandler.class))
                 .route(Route.forEveryone(GreetingHandler.class))
+                .route(Route.forEveryone(BodyHandler.class))
                 .route(Route.forEveryone(HelloHandler.class))
                 .route(Route.forEveryone(JsonHandler.class))
                 .route(Route.forSignedIn(SecretHandler.class, PERMISSION))
@@ -264,6 +265,34 @@ public class TestWiring {
         HttpResponse<String> response = get("/webjars/fake/1.0/fake.css");
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.body().strip()).isEqualTo("body { color: teal; }");
+    }
+
+    @Test
+    public void aHandlerReadsTheBodyAndAHeaderAndAnswersInUtf8() {
+        String json = "{\"text\":\"h\u00e9llo \u2713\"}";
+        HttpResponse<String> response = send(HttpRequest.newBuilder(app.uri("/body"))
+                .header("Content-Type", "application/json")
+                .header("X-Probe", "yes-42")
+                .POST(HttpRequest.BodyPublishers.ofString(json)));
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.headers().firstValue("X-Seen")).contains("yes-42");
+        assertThat(json(response.body())).containsEntry("method", "POST").containsEntry("body", json);
+    }
+
+    @Test
+    public void anEmptyBodyIsAnsweredWithNoContent() {
+        HttpResponse<String> response = send(HttpRequest.newBuilder(app.uri("/body"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.noBody()));
+        assertThat(response.statusCode()).isEqualTo(204);
+        assertThat(response.body()).isEmpty();
+    }
+
+    @Test
+    public void aWrongMethodIsRefusedWithAllow() {
+        HttpResponse<String> response = get("/body");
+        assertThat(response.statusCode()).isEqualTo(405);
+        assertThat(response.headers().firstValue("Allow")).contains("POST");
     }
 
     private static Map<String, String> json(String text) {

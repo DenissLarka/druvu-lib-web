@@ -5,6 +5,7 @@ import com.druvu.web.api.handlers.HttpResponse;
 import com.druvu.web.api.utils.HandlerNameConvention;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -32,8 +33,8 @@ public final class HttpResponseImpl implements HttpResponse {
 
     @SneakyThrows
     @Override
-    public void sendError(int errorCode) {
-        res.sendError(errorCode);
+    public void sendError(int status) {
+        res.sendError(status);
     }
 
     @Override
@@ -42,10 +43,37 @@ public final class HttpResponseImpl implements HttpResponse {
     }
 
     @Override
-    public void commitContent(String contentType, String content) {
-        res.setContentType(Objects.requireNonNull(contentType));
+    public HttpResponse header(String name, String value) {
+        res.setHeader(Objects.requireNonNull(name, "name"), Objects.requireNonNull(value, "value"));
+        return this;
+    }
+
+    @Override
+    public void commit(String contentType, String body) {
+        commit(HttpServletResponse.SC_OK, contentType, body);
+    }
+
+    @Override
+    public void commit(int status, String contentType, String body) {
+        Objects.requireNonNull(contentType, "contentType");
+        Objects.requireNonNull(body, "body");
+        res.setStatus(status);
+        // Bytes and declaration agree: the servlet default would be ISO-8859-1 and mangle any non-ASCII text.
+        res.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        res.setContentType(contentType);
         try {
-            res.getOutputStream().print(Objects.requireNonNull(content));
+            res.getOutputStream().write(body.getBytes(StandardCharsets.UTF_8));
+            res.flushBuffer();
+        } catch (IOException e) {
+            log.error(e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void commit(int status) {
+        res.setStatus(status);
+        res.setContentLength(0);
+        try {
             res.flushBuffer();
         } catch (IOException e) {
             log.error(e.getMessage(), e);

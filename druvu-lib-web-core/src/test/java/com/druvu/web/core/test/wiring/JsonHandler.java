@@ -8,6 +8,6 @@ import com.druvu.web.api.handlers.HttpResponse;
 public final class JsonHandler implements HttpHandler {
     @Override
     public void handle(HttpRequest request, HttpResponse response) {
-        response.commitContent("application/json", "{\"ok\":true}");
+        response.commit("application/json", "{\"ok\":true}");
     }
 }
