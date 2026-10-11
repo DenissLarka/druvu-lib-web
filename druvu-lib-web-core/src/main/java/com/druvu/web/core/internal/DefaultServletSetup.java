@@ -9,7 +9,8 @@ import org.eclipse.jetty.ee10.servlet.ServletHolder;
 
 /**
  * Serves the static paths from the context's base resource with Jetty's {@code ResourceServlet}, the servlet meant for
- * a mapping other than the default one; a week of caching, no directory listings.
+ * a mapping other than the default one. A file is found at its full path, so {@code /static/x.css} is the base's
+ * {@code static/x.css}; a week of caching, no directory listings.
  *
  * @author Deniss Larka on 11 February 2022
  */
@@ -26,6 +27,7 @@ public final class DefaultServletSetup implements Consumer<ServletContextHandler
         holder.setInitOrder(1);
         holder.setInitParameter("cacheControl", "max-age=604800,public");
         holder.setInitParameter("dirAllowed", "false");
+        holder.setInitParameter("pathInfoOnly", "false");
         for (String staticPath : staticPaths) {
             servletContext.addServlet(holder, staticPath);
         }

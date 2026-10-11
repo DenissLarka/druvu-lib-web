@@ -22,7 +22,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
-/** @author : Deniss Larka on 08 June 2024 */
+/** @author Deniss Larka on 08 June 2024 */
 @Slf4j
 public final class HttpRequestImpl implements HttpRequest {
 

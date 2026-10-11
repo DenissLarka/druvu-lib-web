@@ -1,7 +1,7 @@
 package com.druvu.web.core.internal;
 
 import com.druvu.web.api.auth.AuthConfig;
-import com.druvu.web.api.config.UrlConfig;
+import com.druvu.web.api.config.Route;
 import com.druvu.web.api.handlers.WebSocketHandler;
 import jakarta.servlet.ServletContext;
 import java.util.Map;
@@ -16,7 +16,7 @@ import java.util.Set;
  */
 public class ContextVars {
 
-    // Map<String, UrlConfig>
+    // Map<String, Route<?>>
     public static final String HANDLERS = "http_handlers";
     public static final String WS_HANDLERS = "ws_handlers";
     public static final String WS_OPENED = "ws_opened";
@@ -24,8 +24,8 @@ public class ContextVars {
     public static final String AUTH_CONFIG = "auth_config";
 
     @SuppressWarnings("unchecked")
-    public static Map<String, UrlConfig> handlers(ServletContext context) {
-        return (Map<String, UrlConfig>) required(context, HANDLERS);
+    public static Map<String, Route<?>> routes(ServletContext context) {
+        return (Map<String, Route<?>>) required(context, HANDLERS);
     }
 
     public static String defaultPath(ServletContext context) {
@@ -38,8 +38,8 @@ public class ContextVars {
     }
 
     public static Set<String> permissionsFor(ServletContext context, String matchPath) {
-        final UrlConfig urlConfig = handlers(context).get(matchPath);
-        return urlConfig == null ? Set.of() : urlConfig.permissions();
+        final Route<?> route = routes(context).get(matchPath);
+        return route == null ? Set.of() : route.permissions();
     }
 
     @SuppressWarnings("unchecked")

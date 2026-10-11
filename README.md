@@ -48,7 +48,7 @@ Start the server:
 ```java
 WebBoot boot = new WebBoot(WebConfig.builder()
     .port(8080)
-    .urlConfig(UrlConfig.from(DashboardHandler.class))
+    .route(Route.forEveryone(DashboardHandler.class))
     .authConfig(AuthConfig.builder()
         .basicAuth()
         .user("admin", "secret")
@@ -85,7 +85,7 @@ Place `home.php` in `src/main/resources/webapp/`:
 ### 2. Write the handler
 
 A handler's class name gives it both its URL and its template: `HomeHandler` answers `/home` and renders `home.php`.
-No annotations, no routing table.
+No annotations, no routing table. The first route given to `WebConfig` also answers the context root.
 
 ```java
 public class HomeHandler implements HttpHandler {
@@ -104,7 +104,7 @@ public class HomeHandler implements HttpHandler {
 ```java
 WebBoot boot = new WebBoot(WebConfig.builder()
     .port(8080)
-    .urlConfig(UrlConfig.from(HomeHandler.class))
+    .route(Route.forEveryone(HomeHandler.class))
     .authConfig(AuthConfig.builder()
         .basicAuth()
         .user("demo", "demo")
@@ -262,7 +262,7 @@ The API module defines all contracts. The core module provides the Jetty-based i
 
 ### HTTP Handlers
 
-Implement `HttpHandler` and register with `UrlConfig.from()`:
+Implement `HttpHandler` and register it as a `Route`:
 
 ```java
 public class ProductHandler implements HttpHandler {
@@ -348,15 +348,18 @@ The `Handler` suffix is stripped, then CamelCase is converted to kebab-case. No 
 
 ```java
 WebConfig.builder()
-    .host("0.0.0.0")                          // bind address (default: all interfaces)
-    .port(8080)                                // listen port
-    .serveFromDirectory(Path.of("/var/www"))    // serve static files from external folder
-    .staticPath("/assets/*")                   // additional static resource path
-    .globalObject("myService", myService)      // application-scoped object
-    .urlConfig(UrlConfig.from(MyHandler.class)) // register handler
-    .authConfig(authConfig)                    // optional: without it, every route is public
+    .host("0.0.0.0")                               // bind address; without it, loopback only
+    .port(8080)                                    // listen port; 0 picks a free one, 8080 without it
+    .serveFromDirectory(Path.of("/var/www"))       // static files from a directory, in front of the classpath
+    .staticPath("/assets/*")                       // one more static pattern; /static/* and /webjars/* stay
+    .globalObject("myService", myService)          // reachable from every handler and template
+    .route(Route.forEveryone(MyHandler.class))     // the first route also answers the context root
+    .authConfig(authConfig)                        // optional: without it, every route is public
     .build();
 ```
+
+`WebBoot` starts the server under a context path. It stops with the JVM, or earlier through `stop()`; `port()` tells
+which port was bound, the news when the configuration said 0.
 
 ### Global Objects
 
@@ -395,11 +398,11 @@ Three ways in:
 ### Routes say who may reach them
 
 ```java
-.urlConfig(UrlConfig.from(HomeHandler.class))                                // public
-.urlConfig(UrlConfig.signedIn(AccountHandler.class))                         // any signed-in user
-.urlConfig(UrlConfig.from(OrdersHandler.class, "orders:read"))               // signed in, with this permission
-.urlConfig(UrlConfig.from(AdminHandler.class, "admin:all", "orders:read"))   // both permissions
-.urlConfig(UrlConfig.forMachines(GenerateHandler.class, "ea:generate"))      // a bearer token, with this permission
+.route(Route.forEveryone(HomeHandler.class))                                // public
+.route(Route.forSignedIn(AccountHandler.class))                             // any signed-in person
+.route(Route.forSignedIn(OrdersHandler.class, "orders:read"))               // signed in, with this permission
+.route(Route.forSignedIn(AdminHandler.class, "admin:all", "orders:read"))   // both permissions
+.route(Route.forMachines(GenerateHandler.class, "ea:generate"))             // a bearer token, with this permission
 ```
 
 Anonymous on a protected route: 401 with a challenge under Basic, a redirect to the provider under OpenID. Signed in
@@ -410,8 +413,7 @@ takes a token.
 
 ```java
 AuthConfig.builder()
-    .basicAuth()
-    .realm("My Application")
+    .basicAuth("My Application")
     .user("admin", "secret", "admin:all", "orders:read")
     .user("viewer", "pass", "orders:read")
     .build()
@@ -459,7 +461,7 @@ AuthConfig.builder()
     .build()
 ```
 
-A route registered with `UrlConfig.forMachines(…)` requires `Authorization: Bearer <token>`; the token store answers
+A route registered with `Route.forMachines(…)` requires `Authorization: Bearer <token>`; the token store answers
 which subject the token belongs to, and the permission store what that subject may do. The application hands tokens
 out and keeps only their hash:
 
@@ -528,13 +530,19 @@ The `webjar()` function uses `WebJarAssetLocator` to resolve partial file names 
 
 ## Serving Static Files
 
+A static pattern is served at its own path from one merged base: the classpath's `webapp/`, every jar's
+`META-INF/resources/` (where WebJars keep their files), and a directory on disk when you give one. The base is laid out
+like the URL space, so `/static/app.css` is `webapp/static/app.css`, and `/webjars/w2ui/2.0.0/w2ui-2.0.min.css` is
+that file inside the w2ui jar.
+
 ### From the Classpath
 
-By default, static files are served from `src/main/resources/webapp/static/` at the `/static/*` URL path. WebJar assets are served at `/webjars/*`.
+Two patterns are always on: `/static/*` for `src/main/resources/webapp/static/`, and `/webjars/*` for WebJar assets.
 
-### From an External Directory
+### From a Directory
 
-Serve files from a folder outside the classpath — useful for development hot-reload or user-uploaded content:
+A directory outside the classpath comes first in the merged base — for development without a rebuild, or for content
+users upload. It follows the same layout: `/static/logo.png` is `/var/www/myapp/static/logo.png`.
 
 ```java
 WebConfig.builder()
@@ -542,15 +550,13 @@ WebConfig.builder()
     // ...
 ```
 
-Files from the external directory, the `webapp/` classpath resource, and WebJars are all merged into a single resource base.
+### More Static Patterns
 
-### Custom Static Paths
-
-Add additional static resource mappings:
+One more pattern serves the matching folder of the base; the two defaults stay:
 
 ```java
 WebConfig.builder()
-    .staticPath("/assets/*")
+    .staticPath("/assets/*")     // webapp/assets/ on the classpath, assets/ in the directory
     .staticPath("/uploads/*")
     // ...
 ```

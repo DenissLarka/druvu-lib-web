@@ -5,18 +5,21 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.druvu.web.api.auth.AuthConfig;
 import com.druvu.web.api.auth.BasicAuthentication;
+import com.druvu.web.api.auth.OpenIdAuthentication;
 import java.time.Duration;
 import java.util.Set;
 import org.testng.annotations.Test;
 
-/** The sign-in configuration builder: inline users become Basic authentication with an in-memory permission store. */
+/**
+ * The sign-in configuration builder: inline users become Basic authentication with an in-memory permission store, and
+ * two ways in for people are refused.
+ */
 public class TestAuthentication {
 
     @Test
     public void inlineUsersBecomeBasicAuthentication() {
         AuthConfig config = AuthConfig.builder()
-                .basicAuth()
-                .realm("Test Realm")
+                .basicAuth("Test Realm")
                 .user("user", "pass", "generic:permission")
                 .user("admin", "secret", "generic:permission", "admin:permission")
                 .build();
@@ -55,6 +58,16 @@ public class TestAuthentication {
         assertThat(config.permissions().permissions("user")).containsExactly("from:store");
         assertThat(config.sessionTimeout()).isEqualTo(Duration.ofHours(8));
         assertThat(config.cookieName()).isEqualTo("shop");
+    }
+
+    @Test
+    public void basicAndOpenIdTogetherAreRefused() {
+        assertThatThrownBy(() -> AuthConfig.builder()
+                        .people(OpenIdAuthentication.of("https://issuer.example", "id", "secret"))
+                        .user("user", "pass")
+                        .build())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Two ways in");
     }
 
     @Test

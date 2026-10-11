@@ -3,7 +3,7 @@ package com.druvu.web.core.handlers.attr;
 import jakarta.servlet.ServletContext;
 import java.util.Objects;
 
-/** @author : Deniss Larka on 09 June 2024 */
+/** @author Deniss Larka on 09 June 2024 */
 public interface AttributesBackend {
 
     Object getAttribute(String key);

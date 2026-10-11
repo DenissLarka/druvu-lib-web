@@ -1,6 +1,6 @@
 package com.druvu.web.core.security;
 
-import com.druvu.web.api.config.UrlConfig;
+import com.druvu.web.api.config.Route;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,9 +18,9 @@ final class Constraints {
 
     private Constraints() {}
 
-    static Map<String, Constraint> forRoutes(List<UrlConfig> routes) {
+    static Map<String, Constraint> forRoutes(List<Route<?>> routes) {
         Map<String, Constraint> constraints = new LinkedHashMap<>();
-        for (UrlConfig<?> route : routes) {
+        for (Route<?> route : routes) {
             Constraint constraint = route.requiresSignIn() ? Constraint.ANY_USER : Constraint.ALLOWED;
             constraints.put("/" + route.url(), constraint);
             constraints.put("/" + route.url() + "/*", constraint);

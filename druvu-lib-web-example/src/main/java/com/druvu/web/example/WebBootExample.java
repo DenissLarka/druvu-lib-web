@@ -2,16 +2,26 @@ package com.druvu.web.example;
 
 import com.druvu.web.api.auth.AuthConfig;
 import com.druvu.web.api.auth.BearerAuthentication;
-import com.druvu.web.api.config.UrlConfig;
+import com.druvu.web.api.config.Route;
 import com.druvu.web.api.config.WebConfig;
 import com.druvu.web.core.WebBoot;
-import com.druvu.web.example.handlers.*;
 import com.druvu.web.example.handlers.AccountHandler;
 import com.druvu.web.example.handlers.ApiPingHandler;
+import com.druvu.web.example.handlers.Example;
+import com.druvu.web.example.handlers.ExampleJsonHandler;
+import com.druvu.web.example.handlers.ExampleSocketHandler;
+import com.druvu.web.example.handlers.ExampleTable;
+import com.druvu.web.example.handlers.PhpBasics;
+import com.druvu.web.example.handlers.PhpData;
+import com.druvu.web.example.handlers.PhpLoops;
 import com.druvu.web.example.handlers.TokensHandler;
+import com.druvu.web.example.handlers.WsHandler;
 
 /**
- * @author : Deniss Larka <br>
+ * The example application: public pages, pages for signed-in people, a route for machines, and Basic sign-in with two
+ * inline users. Start it and open {@code http://localhost:8081/web-test/}.
+ *
+ * @author Deniss Larka <br>
  *     on 21 Apr 2024
  */
 public final class WebBootExample {
@@ -23,29 +33,31 @@ public final class WebBootExample {
     static void main(String[] args) {
         logConfig();
 
-        final WebConfig webConfig = WebConfig.builder()
+        WebConfig config = WebConfig.builder()
                 .port(PORT)
-                .urlConfig(UrlConfig.from(Example.class))
-                .urlConfig(UrlConfig.from(PhpBasics.class))
-                .urlConfig(UrlConfig.from(PhpLoops.class))
-                .urlConfig(UrlConfig.from(PhpData.class))
-                .urlConfig(UrlConfig.from(ExampleTable.class))
-                .urlConfig(UrlConfig.from(ExampleSocketHandler.class))
-                .urlConfig(UrlConfig.from(ExampleJsonHandler.class))
-                .urlConfig(UrlConfig.from(WsHandler.class))
-                .urlConfig(UrlConfig.signedIn(AccountHandler.class))
-                .urlConfig(UrlConfig.signedIn(TokensHandler.class))
-                .urlConfig(UrlConfig.forMachines(ApiPingHandler.class))
+                // Public; the first route also answers the context root
+                .route(Route.forEveryone(Example.class))
+                .route(Route.forEveryone(PhpBasics.class))
+                .route(Route.forEveryone(PhpLoops.class))
+                .route(Route.forEveryone(PhpData.class))
+                .route(Route.forEveryone(ExampleTable.class))
+                .route(Route.forEveryone(ExampleSocketHandler.class))
+                .route(Route.forEveryone(ExampleJsonHandler.class))
+                .route(Route.forEveryone(WsHandler.class))
+                // Signed-in people
+                .route(Route.forSignedIn(AccountHandler.class))
+                .route(Route.forSignedIn(TokensHandler.class))
+                // Machines, with a bearer token
+                .route(Route.forMachines(ApiPingHandler.class))
                 .authConfig(AuthConfig.builder()
-                        .basicAuth()
+                        .basicAuth("Example")
                         .user("user", "pass", "generic:permission")
                         .user("admin", "admin", "generic:permission", "admin:permission")
                         .machines(new BearerAuthentication(ExampleTokens.STORE))
                         .build())
                 .build();
 
-        WebBoot boot = new WebBoot(webConfig);
-        boot.start("/web-test");
+        new WebBoot(config).start("/web-test");
     }
 
     private static void logConfig() {

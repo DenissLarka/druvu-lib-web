@@ -6,7 +6,7 @@ package com.druvu.web.api.handlers;
  * <p>Provides methods for sending redirects, errors, and content. Implementations are created via factory methods in
  * the core module.
  *
- * @author : Deniss Larka on 08 June 2024
+ * @author Deniss Larka on 08 June 2024
  */
 public interface HttpResponse {
 

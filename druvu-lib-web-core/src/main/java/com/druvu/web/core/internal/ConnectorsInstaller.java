@@ -10,7 +10,7 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 
 /**
- * @author : Deniss Larka <br>
+ * @author Deniss Larka <br>
  *     on 21 Apr 2024
  */
 public class ConnectorsInstaller {
@@ -23,7 +23,7 @@ public class ConnectorsInstaller {
         ServerConnector connector = new ServerConnector(server, new HttpConnectionFactory(httpConfig));
         connector.setPort(webConfig.port());
         connector.setHost(
-                webConfig.host() == null ? InetAddress.getLoopbackAddress().getHostAddress() : webConfig.host());
+                webConfig.host().orElse(InetAddress.getLoopbackAddress().getHostAddress()));
         return connector;
     }
 

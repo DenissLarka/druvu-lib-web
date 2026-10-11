@@ -1,2 +1,2 @@
-/** Configuration classes for druvu-lib-web. Contains WebConfig, UrlConfig, and related configuration interfaces. */
+/** What an application tells the server: {@code WebConfig} with its {@code Route}s and their {@code Audience}. */
 package com.druvu.web.api.config;

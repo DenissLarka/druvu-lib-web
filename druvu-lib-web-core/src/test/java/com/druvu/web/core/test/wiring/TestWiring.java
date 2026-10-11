@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.druvu.web.api.auth.AuthConfig;
 import com.druvu.web.api.auth.BearerAuthentication;
-import com.druvu.web.api.config.UrlConfig;
+import com.druvu.web.api.config.Route;
 import com.druvu.web.api.config.WebConfig;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -31,7 +31,8 @@ import org.testng.annotations.Test;
 /**
  * The framework's wiring exercised over real HTTP against a booted server: routing by handler name, the
  * handler-to-template channel, committed responses, the not-found and error paths, Basic auth with per-URL permissions,
- * static files, and the WebSocket upgrade with its echo through a handler.
+ * static files on the default and an added path, a global object reaching a handler, and the WebSocket upgrade with its
+ * echo through a handler.
  */
 public class TestWiring {
     private static final String PERMISSION = "secret:read";
@@ -49,17 +50,20 @@ public class TestWiring {
     public void boot() {
         WebConfig config = WebConfig.builder()
                 .port(0)
-                .urlConfig(UrlConfig.from(PlainHandler.class))
-                .urlConfig(UrlConfig.from(HelloHandler.class))
-                .urlConfig(UrlConfig.from(JsonHandler.class))
-                .urlConfig(UrlConfig.from(SecretHandler.class, PERMISSION))
-                .urlConfig(UrlConfig.signedIn(ProfileHandler.class))
-                .urlConfig(UrlConfig.from(FormHandler.class))
-                .urlConfig(UrlConfig.from(BrokenHandler.class))
-                .urlConfig(UrlConfig.from(EchoSocketHandler.class))
-                .urlConfig(UrlConfig.from(SecretSocketHandler.class, PERMISSION))
-                .urlConfig(UrlConfig.forMachines(ApiStatusHandler.class))
-                .urlConfig(UrlConfig.forMachines(ApiSecretHandler.class, PERMISSION))
+                .globalObject("greeting", "hello from the app")
+                .staticPath("/assets/*")
+                .route(Route.forEveryone(PlainHandler.class))
+                .route(Route.forEveryone(GreetingHandler.class))
+                .route(Route.forEveryone(HelloHandler.class))
+                .route(Route.forEveryone(JsonHandler.class))
+                .route(Route.forSignedIn(SecretHandler.class, PERMISSION))
+                .route(Route.forSignedIn(ProfileHandler.class))
+                .route(Route.forEveryone(FormHandler.class))
+                .route(Route.forEveryone(BrokenHandler.class))
+                .route(Route.forEveryone(EchoSocketHandler.class))
+                .route(Route.forSignedIn(SecretSocketHandler.class, PERMISSION))
+                .route(Route.forMachines(ApiStatusHandler.class))
+                .route(Route.forMachines(ApiSecretHandler.class, PERMISSION))
                 .authConfig(AuthConfig.builder()
                         .basicAuth()
                         .user("alice", "pw", PERMISSION)
@@ -72,7 +76,7 @@ public class TestWiring {
     }
 
     @AfterClass
-    public void stop() throws Exception {
+    public void stop() {
         app.close();
     }
 
@@ -239,6 +243,27 @@ public class TestWiring {
             Thread.currentThread().interrupt();
             throw new AssertionError(e);
         }
+    }
+
+    @Test
+    public void aGlobalObjectReachesAHandler() {
+        HttpResponse<String> response = get("/greeting");
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.body()).isEqualTo("hello from the app");
+    }
+
+    @Test
+    public void anAddedStaticPathIsServedNextToTheDefaultOne() {
+        HttpResponse<String> response = get("/assets/note.txt");
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.body().strip()).isEqualTo("served from assets");
+    }
+
+    @Test
+    public void aWebJarIsServedFromItsStandardLocation() {
+        HttpResponse<String> response = get("/webjars/fake/1.0/fake.css");
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.body().strip()).isEqualTo("body { color: teal; }");
     }
 
     private static Map<String, String> json(String text) {

@@ -2,7 +2,7 @@ package com.druvu.web.core.security;
 
 import com.druvu.web.api.auth.AuthConfig;
 import com.druvu.web.api.auth.OpenIdAuthentication;
-import com.druvu.web.api.config.UrlConfig;
+import com.druvu.web.api.config.Route;
 import com.druvu.web.api.config.WebConfig;
 import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
 import org.eclipse.jetty.ee10.servlet.ServletHolder;
@@ -28,18 +28,18 @@ public final class SecuritySetup {
     private SecuritySetup() {}
 
     public static void install(ServletContextHandler context, WebConfig config) {
-        AuthConfig auth = config.authConfig();
-        if (auth == null) {
+        if (config.authConfig().isEmpty()) {
             warnAboutProtectedRoutes(config);
             LOG.info("No AuthConfig: every route is public");
             return;
         }
+        AuthConfig auth = config.authConfig().get();
         PeopleSignIn people = PeopleSignIn.of(auth);
         SecurityHandler.PathMapped security = new SecurityHandler.PathMapped();
-        Constraints.forRoutes(config.urlConfigs()).forEach(security::put);
+        Constraints.forRoutes(config.routes()).forEach(security::put);
         // The identity service comes from the login service; Jetty insists the two share one.
         security.setLoginService(people.loginService());
-        security.setAuthenticator(Authenticators.forConfig(auth, people, config.urlConfigs()));
+        security.setAuthenticator(Authenticators.forConfig(auth, people, config.routes()));
         security.setRealmName(people.realm());
         security.setSessionRenewedOnAuthentication(true);
         context.setSessionHandler(Sessions.handler(auth));
@@ -51,7 +51,7 @@ public final class SecuritySetup {
     }
 
     private static void warnAboutProtectedRoutes(WebConfig config) {
-        for (UrlConfig<?> route : config.urlConfigs()) {
+        for (Route<?> route : config.routes()) {
             if (route.requiresSignIn()) {
                 LOG.warn("Route /{} requires sign-in but there is no AuthConfig: nobody can reach it", route.url());
             }

@@ -1,14 +1,14 @@
 package com.druvu.web.core.handlers.attr;
 
 import com.druvu.web.api.auth.AuthConfig;
-import com.druvu.web.api.config.UrlConfig;
+import com.druvu.web.api.config.Route;
 import com.druvu.web.api.handlers.GlobalAttributes;
 import jakarta.servlet.ServletContext;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-/** @author : Deniss Larka on 09 June 2024 */
+/** @author Deniss Larka on 09 June 2024 */
 public final class GlobalAttributesImpl extends Attributes implements GlobalAttributes {
 
     public static final String HANDLERS = "http_handlers";
@@ -26,7 +26,7 @@ public final class GlobalAttributesImpl extends Attributes implements GlobalAttr
     }
 
     @Override
-    public Map<String, UrlConfig> handlers() {
+    public Map<String, Route<?>> routes() {
         return map(HANDLERS);
     }
 
@@ -42,7 +42,7 @@ public final class GlobalAttributesImpl extends Attributes implements GlobalAttr
 
     @Override
     public Set<String> permissionsFor(String matchPath) {
-        final UrlConfig urlConfig = handlers().get(matchPath);
-        return urlConfig == null ? Set.of() : urlConfig.permissions();
+        final Route<?> route = routes().get(matchPath);
+        return route == null ? Set.of() : route.permissions();
     }
 }

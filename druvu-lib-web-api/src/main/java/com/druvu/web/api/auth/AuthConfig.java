@@ -27,7 +27,8 @@ import java.util.Set;
  *
  * <p>A {@code WebConfig} without an {@code AuthConfig} serves every route to everyone.
  *
- * @author Deniss Larka
+ * @author Deniss Larka <br>
+ *     on 10 Oct 2026
  */
 public final class AuthConfig {
 
@@ -90,6 +91,7 @@ public final class AuthConfig {
         private Duration sessionTimeout = DEFAULT_SESSION_TIMEOUT;
         private String cookieName = DEFAULT_COOKIE_NAME;
         private String realm = DEFAULT_REALM;
+        private boolean basic;
         private final Map<String, BasicUser> inlineUsers = new LinkedHashMap<>();
 
         private AuthConfigBuilder() {}
@@ -119,31 +121,38 @@ public final class AuthConfig {
             return this;
         }
 
-        /** Inline users follow; the realm is what the browser's password prompt shows. */
+        /** Basic authentication for people, with the default realm; inline {@link #user users} follow. */
         public AuthConfigBuilder basicAuth() {
+            this.basic = true;
             return this;
         }
 
-        public AuthConfigBuilder realm(String realm) {
+        /** Basic authentication for people, naming the realm the browser's password prompt shows. */
+        public AuthConfigBuilder basicAuth(String realm) {
             this.realm = Objects.requireNonNull(realm, "realm");
-            return this;
+            return basicAuth();
         }
 
-        /** An inline user for Basic authentication, with what the user may do. */
+        /** An inline user for Basic authentication, with what the user may do; implies {@link #basicAuth()}. */
         public AuthConfigBuilder user(String name, String password, String... permissions) {
             inlineUsers.put(Objects.requireNonNull(name, "name"), new BasicUser(password, Set.of(permissions)));
-            return this;
+            return basicAuth();
         }
 
-        /** @throws IllegalStateException when there is no way to sign in: neither {@link #people} nor inline users */
+        /** @throws IllegalStateException when there is no way to sign in, or two: {@link #people} and Basic together */
         public AuthConfig build() {
+            if (people != null && basic) {
+                throw new IllegalStateException(
+                        "Two ways in for people: people(...) and Basic authentication; choose one");
+            }
             Authentication how = people;
             PermissionStore what = permissions;
             if (how == null && !inlineUsers.isEmpty()) {
                 how = new BasicAuthentication(realm, inlineUsers);
             }
             if (how == null) {
-                throw new IllegalStateException("No way to sign in: give people(...) or at least one user(...)");
+                throw new IllegalStateException(
+                        "No way to sign in: give people(...) or basicAuth() with at least one user(...)");
             }
             if (what == null) {
                 what = how instanceof BasicAuthentication basic ? inlinePermissions(basic) : subject -> Set.of();

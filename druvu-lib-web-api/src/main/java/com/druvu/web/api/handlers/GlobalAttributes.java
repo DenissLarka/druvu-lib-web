@@ -1,47 +1,36 @@
 package com.druvu.web.api.handlers;
 
-import com.druvu.web.api.config.UrlConfig;
+import com.druvu.web.api.config.Route;
 import java.util.Map;
 import java.util.Set;
 
 /**
- * Interface for accessing global (application-scoped) attributes.
+ * What every handler may reach beyond its own request: the application's global objects, the routes and the default
+ * path. A handler gets it from {@code request.globalAttributes()}; the core module provides the implementation.
  *
- * <p>Provides access to handlers, default path, and permissions. The core module provides the implementation.
- *
- * @author : Deniss Larka on 09 June 2024
+ * @author Deniss Larka <br>
+ *     on 09 Jun 2024
  */
 public interface GlobalAttributes {
 
     /**
-     * Get an attribute by key.
+     * A global object by name, as given to {@code WebConfig.builder().globalObject(name, value)}.
      *
-     * @param key the attribute key
+     * @param key the name
      * @param <C> the expected type
-     * @return the attribute value
-     * @throws IllegalStateException if the attribute is not found
+     * @throws IllegalStateException when there is no object of that name
      */
     <C> C get(String key);
 
-    /**
-     * Check if an attribute exists.
-     *
-     * @param key the attribute key
-     * @return true if the attribute exists
-     */
+    /** Whether a global object of that name exists. */
     boolean has(String key);
 
-    /** @return the map of URL path to handler configuration */
-    Map<String, UrlConfig> handlers();
+    /** The routes by URL. */
+    Map<String, Route<?>> routes();
 
-    /** @return the default path to use when path is empty */
+    /** The URL of the first route, which the context root renders. */
     String defaultPath();
 
-    /**
-     * Get the required permissions for a given path.
-     *
-     * @param matchPath the path to check
-     * @return set of required permissions, or empty set if none
-     */
+    /** The permissions a route requires, or none for an unknown path. */
     Set<String> permissionsFor(String matchPath);
 }

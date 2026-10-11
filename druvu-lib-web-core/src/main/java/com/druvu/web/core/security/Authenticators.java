@@ -2,7 +2,7 @@ package com.druvu.web.core.security;
 
 import com.druvu.web.api.auth.AuthConfig;
 import com.druvu.web.api.config.Audience;
-import com.druvu.web.api.config.UrlConfig;
+import com.druvu.web.api.config.Route;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -19,7 +19,7 @@ final class Authenticators {
 
     private Authenticators() {}
 
-    static Authenticator forConfig(AuthConfig auth, PeopleSignIn people, List<UrlConfig> routes) {
+    static Authenticator forConfig(AuthConfig auth, PeopleSignIn people, List<Route<?>> routes) {
         return auth.machines()
                 .map(bearer -> new BearerAuthenticator(bearer.tokens(), auth.permissions(), people.realm()))
                 .<Authenticator>map(
@@ -27,10 +27,10 @@ final class Authenticators {
                 .orElse(people.authenticator());
     }
 
-    private static Set<String> machineRoutes(List<UrlConfig> routes) {
+    private static Set<String> machineRoutes(List<Route<?>> routes) {
         return routes.stream()
                 .filter(route -> route.audience() == Audience.MACHINES)
-                .map(UrlConfig::url)
+                .map(Route::url)
                 .collect(Collectors.toSet());
     }
 }

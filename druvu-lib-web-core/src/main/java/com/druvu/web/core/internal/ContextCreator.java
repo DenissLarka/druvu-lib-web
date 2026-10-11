@@ -13,7 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
 
 /**
- * @author : Deniss Larka <br>
+ * @author Deniss Larka <br>
  *     on 21 Apr 2024
  */
 @Slf4j
@@ -21,7 +21,8 @@ public class ContextCreator {
 
     public static ServletContextHandler create(WebConfig webConfig, String contextPath) {
         ServletContextHandler webappContext = new ServletContextHandler(contextPath, ServletContextHandler.NO_SESSIONS);
-        ResourcesSetup resourcesSetup = new ResourcesSetup(webConfig.serveFromDirectory());
+        ResourcesSetup resourcesSetup =
+                new ResourcesSetup(webConfig.serveFromDirectory().orElse(null));
         webappContext.setBaseResource(resourcesSetup.call());
 
         // When this library is packaged inside an executable jar (e.g. a Spring Boot

@@ -7,7 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author : Deniss Larka
+ * @author Deniss Larka
  * @since : 2021 February 10
  */
 @Slf4j

@@ -5,7 +5,7 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * @author : Deniss Larka <br>
+ * @author Deniss Larka <br>
  *     on 09 June 2024
  */
 public class Attributes {

@@ -60,7 +60,7 @@
             { recid: 3, component: 'BuiltInFunctions',   action: 'webjar(), context(), link()',   status: 'OK', time: '1s ago' },
             { recid: 4, component: 'DispatcherServlet',  action: '5 handlers mapped',            status: 'OK', time: '1s ago' },
             { recid: 5, component: 'WebSocketSetup',     action: 'WS upgrade listener active',   status: 'OK', time: '1s ago' },
-            { recid: 6, component: 'DefaultServlet',     action: 'Serving /webjars/*, /static/*', status: 'OK', time: '1s ago' }
+            { recid: 6, component: 'ResourceServlet',    action: 'Serving /webjars/*, /static/*', status: 'OK', time: '1s ago' }
         ]
     }).render();
 </script>

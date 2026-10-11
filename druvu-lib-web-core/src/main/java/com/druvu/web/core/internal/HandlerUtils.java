@@ -2,7 +2,7 @@ package com.druvu.web.core.internal;
 
 import com.druvu.web.api.auth.AuthConfig;
 import com.druvu.web.api.auth.AuthUserIdentity;
-import com.druvu.web.api.config.UrlConfig;
+import com.druvu.web.api.config.Route;
 import com.druvu.web.api.config.UrlHandler;
 import com.druvu.web.api.handlers.GlobalAttributes;
 import com.druvu.web.api.handlers.HttpCall;
@@ -40,7 +40,7 @@ public class HandlerUtils {
             HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse) {
         final GlobalAttributes globalAttributes = GlobalAttributesImpl.from(httpServletRequest.getServletContext());
         final String mainPath = resolveMainPath(httpServletRequest, globalAttributes);
-        final UrlConfig<?> route = globalAttributes.handlers().get(mainPath);
+        final Route<?> route = globalAttributes.routes().get(mainPath);
         final Optional<AuthConfig> auth = ContextVars.authConfig(httpServletRequest.getServletContext());
         final Optional<AuthUserIdentity> user = auth.flatMap(config -> Identities.of(httpServletRequest, config));
         if (route != null && route.requiresSignIn()) {
@@ -64,11 +64,10 @@ public class HandlerUtils {
     }
 
     @SneakyThrows
+    @SuppressWarnings("unchecked")
     public static <H extends UrlHandler> H handler(GlobalAttributes context, String matchPath) {
-        final UrlConfig urlConfig = context.handlers().get(matchPath);
-        final Class<H> handlerClass = urlConfig.urlHandlerClass();
-        Objects.requireNonNull(handlerClass);
-        return handlerClass.getDeclaredConstructor().newInstance();
+        final Route<?> route = Objects.requireNonNull(context.routes().get(matchPath), () -> "No route " + matchPath);
+        return (H) route.handlerClass().getDeclaredConstructor().newInstance();
     }
 
     private static String resolveMainPath(HttpServletRequest request, GlobalAttributes globalAttributes) {

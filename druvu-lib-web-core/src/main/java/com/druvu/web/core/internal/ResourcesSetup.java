@@ -6,7 +6,12 @@ import lombok.SneakyThrows;
 import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.util.resource.ResourceFactory;
 
-/** @author Deniss Larka on 11 February 2022 */
+/**
+ * The base resource static files are served from, laid out like the URL space: a directory on disk when given, the
+ * classpath's {@code webapp}, and {@code META-INF/resources} of every jar, where WebJars keep their files.
+ *
+ * @author Deniss Larka on 11 February 2022
+ */
 public class ResourcesSetup implements Callable<Resource> {
 
     private final Path externalDirectory;
@@ -29,11 +34,11 @@ public class ResourcesSetup implements Callable<Resource> {
     }
 
     private Resource webjarResource() {
-        return RcUtils.resources("META-INF/resources/webjars");
+        return RcUtils.resources("META-INF/resources");
     }
 
     @SneakyThrows
     private Resource webappResource() {
-        return ResourceFactory.combine(RcUtils.resource("webapp"), RcUtils.resource("webapp/static"));
+        return RcUtils.resource("webapp");
     }
 }

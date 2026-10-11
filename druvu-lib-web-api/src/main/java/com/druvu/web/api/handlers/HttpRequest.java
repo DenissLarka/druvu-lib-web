@@ -10,7 +10,7 @@ import java.util.Optional;
  * <p>Provides access to request path, parameters, attributes, and user identity. Implementations are created via
  * factory methods in the core module.
  *
- * @author : Deniss Larka on 08 June 2024
+ * @author Deniss Larka on 08 June 2024
  */
 public interface HttpRequest {
 

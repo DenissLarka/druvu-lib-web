@@ -128,7 +128,7 @@ public class TestPhpValues {
         Assert.assertEquals(PhpString.of("08").toKey(), new ArrayKey.StringKey("08"));
     }
 
-    @Test(expectedExceptions = com.druvu.php.PhpProcessingException.class)
+    @Test(expectedExceptions = PhpProcessingException.class)
     public void testArrayCannotBeAKey() {
         PhpArray.empty().toKey();
     }

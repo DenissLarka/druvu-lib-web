@@ -1,6 +1,6 @@
 package com.druvu.web.core.internal;
 
-import com.druvu.web.api.config.UrlConfig;
+import com.druvu.web.api.config.Route;
 import com.druvu.web.api.handlers.HttpCall;
 import com.druvu.web.api.handlers.HttpHandler;
 import com.druvu.web.api.handlers.PathInfo;
@@ -71,12 +71,11 @@ public class DispatcherServlet extends HttpServlet {
 
     @SneakyThrows
     private HttpHandler handler(String matchPath) {
-        final UrlConfig urlConfig = ContextVars.handlers(getServletContext()).get(matchPath);
-        if (urlConfig == null) {
+        final Route<?> route = ContextVars.routes(getServletContext()).get(matchPath);
+        if (route == null) {
             return NOT_FOUND;
         }
-        final Class<HttpHandler> handlerClass = urlConfig.urlHandlerClass();
-        return handlerClass.getDeclaredConstructor().newInstance();
+        return (HttpHandler) route.handlerClass().getDeclaredConstructor().newInstance();
     }
 
     private RequestDispatcher dispatcher(HttpServletRequest request, String dispatcherName) {

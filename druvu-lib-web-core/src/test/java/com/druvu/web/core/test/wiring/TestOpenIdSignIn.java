@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.druvu.web.api.auth.AuthConfig;
 import com.druvu.web.api.auth.OpenIdAuthentication;
-import com.druvu.web.api.config.UrlConfig;
+import com.druvu.web.api.config.Route;
 import com.druvu.web.api.config.WebConfig;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -35,10 +35,10 @@ public class TestOpenIdSignIn {
         provider = new FakeOpenIdProvider();
         WebConfig config = WebConfig.builder()
                 .port(0)
-                .urlConfig(UrlConfig.from(PlainHandler.class))
-                .urlConfig(UrlConfig.signedIn(ProfileHandler.class))
-                .urlConfig(UrlConfig.signedIn(WhoamiHandler.class))
-                .urlConfig(UrlConfig.from(SecretHandler.class, "secret:read"))
+                .route(Route.forEveryone(PlainHandler.class))
+                .route(Route.forSignedIn(ProfileHandler.class))
+                .route(Route.forSignedIn(WhoamiHandler.class))
+                .route(Route.forSignedIn(SecretHandler.class, "secret:read"))
                 .authConfig(AuthConfig.builder()
                         .people(OpenIdAuthentication.of(
                                 provider.issuer(), FakeOpenIdProvider.CLIENT_ID, FakeOpenIdProvider.CLIENT_SECRET))
