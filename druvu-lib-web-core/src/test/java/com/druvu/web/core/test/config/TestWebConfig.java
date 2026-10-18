@@ -25,6 +25,17 @@ public class TestWebConfig {
         assertThat(config.globalObjects()).isEmpty();
         assertThat(config.serveFromDirectory()).isEmpty();
         assertThat(config.authConfig()).isEmpty();
+        assertThat(config.uploadLimit()).isEqualTo(10L * 1024 * 1024);
+    }
+
+    @Test
+    public void anUploadLimitIsKeptAndANonPositiveOneRefused() {
+        WebConfig config = WebConfig.builder()
+                .route(Route.forEveryone(PlainHandler.class))
+                .uploadLimit(4096)
+                .build();
+        assertThat(config.uploadLimit()).isEqualTo(4096);
+        assertThatThrownBy(() -> WebConfig.builder().uploadLimit(0)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

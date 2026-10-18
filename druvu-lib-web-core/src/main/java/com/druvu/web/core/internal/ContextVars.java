@@ -22,6 +22,7 @@ public class ContextVars {
     public static final String WS_OPENED = "ws_opened";
     public static final String HTTP_DEFAULT = "http_default_path";
     public static final String AUTH_CONFIG = "auth_config";
+    public static final String UPLOAD_LIMIT = "upload_limit";
 
     @SuppressWarnings("unchecked")
     public static Map<String, Route<?>> routes(ServletContext context) {
@@ -35,6 +36,11 @@ public class ContextVars {
     /** The application's sign-in configuration, or empty when it serves everything to everyone. */
     public static Optional<AuthConfig> authConfig(ServletContext context) {
         return Optional.ofNullable((AuthConfig) context.getAttribute(AUTH_CONFIG));
+    }
+
+    /** The largest multipart body the application accepts, in bytes. */
+    public static long uploadLimit(ServletContext context) {
+        return (Long) required(context, UPLOAD_LIMIT);
     }
 
     public static Set<String> permissionsFor(ServletContext context, String matchPath) {

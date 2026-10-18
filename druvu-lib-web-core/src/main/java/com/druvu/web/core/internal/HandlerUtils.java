@@ -31,6 +31,8 @@ import lombok.SneakyThrows;
  */
 public class HandlerUtils {
 
+    private static final String MULTIPART_FORM_DATA = "multipart/form-data";
+
     public static Optional<HttpCall> process(
             HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse) {
         return doProcess(httpServletRequest, httpServletResponse);
@@ -51,10 +53,21 @@ public class HandlerUtils {
                 return refused(httpServletResponse, HttpServletResponse.SC_FORBIDDEN);
             }
         }
+        if (isOverUploadLimit(httpServletRequest)) {
+            return refused(httpServletResponse, HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE);
+        }
         HttpRequest req = new HttpRequestImpl(httpServletRequest, user);
         HttpResponse resp =
                 new HttpResponseImpl(httpServletResponse, httpServletRequest.getContextPath(), globalAttributes);
         return Optional.of(new HttpCall(req, resp));
+    }
+
+    /** A multipart body that declares more bytes than the upload limit is refused before any of it is read. */
+    private static boolean isOverUploadLimit(HttpServletRequest request) {
+        String contentType = request.getContentType();
+        return contentType != null
+                && contentType.regionMatches(true, 0, MULTIPART_FORM_DATA, 0, MULTIPART_FORM_DATA.length())
+                && request.getContentLengthLong() > ContextVars.uploadLimit(request.getServletContext());
     }
 
     @SneakyThrows

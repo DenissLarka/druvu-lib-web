@@ -36,6 +36,9 @@ public final class WebConfig {
     /** Always served as static files: WebJars and the application's {@code webapp/static}. */
     public static final Set<String> DEFAULT_STATIC_PATHS = Set.of("/webjars/*", "/static/*");
 
+    /** The largest multipart body accepted when no limit is given: 10 MB. */
+    public static final long DEFAULT_UPLOAD_LIMIT = 10L * 1024 * 1024;
+
     private final String host;
     private final int port;
     private final Path serveFromDirectory;
@@ -43,6 +46,7 @@ public final class WebConfig {
     private final Map<String, Object> globalObjects;
     private final List<Route<?>> routes;
     private final AuthConfig authConfig;
+    private final long uploadLimit;
 
     private WebConfig(WebConfigBuilder builder) {
         this.host = builder.host;
@@ -52,6 +56,7 @@ public final class WebConfig {
         this.globalObjects = Map.copyOf(builder.globalObjects);
         this.routes = List.copyOf(builder.routes);
         this.authConfig = builder.authConfig;
+        this.uploadLimit = builder.uploadLimit;
     }
 
     public static WebConfigBuilder builder() {
@@ -93,6 +98,11 @@ public final class WebConfig {
         return Optional.ofNullable(authConfig);
     }
 
+    /** The largest {@code multipart/form-data} body accepted, files and fields together, in bytes. */
+    public long uploadLimit() {
+        return uploadLimit;
+    }
+
     public static final class WebConfigBuilder {
         private String host;
         private int port = DEFAULT_PORT;
@@ -101,6 +111,7 @@ public final class WebConfig {
         private final Map<String, Object> globalObjects = new LinkedHashMap<>();
         private final List<Route<?>> routes = new ArrayList<>();
         private AuthConfig authConfig;
+        private long uploadLimit = DEFAULT_UPLOAD_LIMIT;
 
         private WebConfigBuilder() {}
 
@@ -156,6 +167,19 @@ public final class WebConfig {
         /** How people and machines sign in. Without it, every route is public. */
         public WebConfigBuilder authConfig(AuthConfig authConfig) {
             this.authConfig = Objects.requireNonNull(authConfig, "authConfig");
+            return this;
+        }
+
+        /**
+         * The largest {@code multipart/form-data} body the server accepts, files and fields together, in bytes; 10 MB
+         * without it. A larger one never reaches its handler: it is answered 413, or 400 when it came in chunks without
+         * a declared length and the limit was found while reading it.
+         */
+        public WebConfigBuilder uploadLimit(long bytes) {
+            if (bytes <= 0) {
+                throw new IllegalArgumentException("An upload limit is a positive number of bytes: " + bytes);
+            }
+            this.uploadLimit = bytes;
             return this;
         }
 

@@ -145,7 +145,7 @@ That's it. Run `App` and open `http://localhost:8080/app/home`.
 |---|---|
 | `com.druvu.web.core` | `WebBoot` |
 | `com.druvu.web.api.config` | `WebConfig`, `Route` |
-| `com.druvu.web.api.handlers` | `HttpHandler`, `HttpRequest`, `HttpResponse`, `HttpMethod`, `PathInfo`, `ParamInfo`, `GlobalAttributes`, `WebSocketHandler` (its `Session` and `Sessions` are nested in it) |
+| `com.druvu.web.api.handlers` | `HttpHandler`, `HttpRequest`, `HttpResponse`, `HttpMethod`, `PathInfo`, `ParamInfo`, `UploadedFile`, `DownloadFile`, `GlobalAttributes`, `WebSocketHandler` (its `Session` and `Sessions` are nested in it) |
 | `com.druvu.web.api.auth` | `AuthConfig`, `BearerAuthentication`, `OpenIdAuthentication`, `TokenStore`, `PermissionStore`, `ApiTokens`, `AuthUserIdentity` |
 | `com.druvu.web.api.plugin` | `TemplateEnginePlugin` |
 | `com.druvu.php` | `PhpEngine`, `TemplateLoader`, `PhpEngineConfig`, `HostRequest`: the engine on its own, artifact `druvu-lib-php` |
@@ -335,6 +335,23 @@ public class ApiHandler implements HttpHandler {
 }
 ```
 
+#### Files: uploads and downloads
+
+A file sent from a form (`<input type="file">` in a `multipart/form-data` form) arrives as an `UploadedFile`, apart
+from the form's text fields; a handler sends a file back with `commit(DownloadFile)`:
+
+```java
+// a file sent as <input type="file" name="report">; filename() has no directory part, so it is safe in a folder of yours
+request.upload("report").ifPresent(file -> file.saveTo(incoming.resolve(file.filename())));
+
+// a file for the browser to save, under any name
+response.commit(DownloadFile.of(Path.of("dist/app-1.0.0.dmg")));            // streamed from disk
+response.commit(DownloadFile.of("orders.csv", "text/csv", csvBytes));      // made in memory
+```
+
+A multipart body over the upload limit (10 MB, or `WebConfig.builder().uploadLimit(bytes)`) never reaches its handler:
+it is answered 413, or 400 when it came in chunks without a declared length.
+
 ### WebSocket Handlers
 
 Real-time communication with JSON messaging:
@@ -391,6 +408,7 @@ WebConfig.builder()
     .globalObject("myService", myService)          // reachable from every handler and template
     .route(Route.forEveryone(MyHandler.class))     // the first route also answers the context root
     .authConfig(authConfig)                        // optional: without it, every route is public
+    .uploadLimit(50L * 1024 * 1024)                // largest multipart body accepted; 10 MB without it
     .build();
 ```
 
@@ -656,7 +674,9 @@ that constant back into a lookup; nothing here pretends it already is one.
 | Method               | Description                              |
 |----------------------|------------------------------------------|
 | `pathInfo()`         | URL segments with typed extraction       |
-| `paramInfo()`        | Query/form parameters with typed getters |
+| `paramInfo()`        | Query/form parameters with typed getters; a multipart form's text fields |
+| `upload(name)`       | The file sent under this form field, if any |
+| `uploads()`          | Every file of a multipart body, in the order sent |
 | `user()`             | Authenticated user identity (if any)     |
 | `globalAttributes()` | Application-scoped objects               |
 | `method()`           | The method as `HttpMethod`, an enum: `GET`, `POST`, ... |
@@ -697,6 +717,7 @@ request.paramInfo().getOrDefault("sort", "relevance");      // "relevance"
 | `commit(contentType, body)` | Commit 200 with this body, UTF-8; no template runs |
 | `commit(status, contentType, body)` | The same with another status |
 | `commit(status)` | Commit a bare status: 202, 204, 405 with `Allow` set before |
+| `commit(DownloadFile.of(...))` | Commit 200 with a file for the browser to save, any file name intact |
 | `sendRedirect(url)` | Redirect (302) to this URL; no template runs |
 | `sendRedirect(AccountHandler.class)` | Redirect (302) to that handler's route in this application, from any depth; a class that is no route throws `IllegalArgumentException` |
 | `sendError(code)` | Send error status through the error handler |

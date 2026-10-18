@@ -6,24 +6,24 @@ import com.druvu.web.api.handlers.HttpMethod;
 import com.druvu.web.api.handlers.HttpRequest;
 import com.druvu.web.api.handlers.ParamInfo;
 import com.druvu.web.api.handlers.PathInfo;
+import com.druvu.web.api.handlers.UploadedFile;
 import com.druvu.web.core.handlers.attr.GlobalAttributesImpl;
 import jakarta.servlet.DispatcherType;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.Part;
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
 /** @author Deniss Larka on 08 June 2024 */
@@ -37,6 +37,7 @@ public final class HttpRequestImpl implements HttpRequest {
     private final Optional<AuthUserIdentity> authUserOpt;
     private final PathInfo pathInfo;
     private final ParamInfo paramInfo;
+    private final List<UploadedFile> uploads;
     private final DispatcherType dispatcherType;
     private final GlobalAttributes globalAttributes;
     private final HttpServletRequest request;
@@ -47,36 +48,45 @@ public final class HttpRequestImpl implements HttpRequest {
         this.authUserOpt = Objects.requireNonNull(identityOpt);
         this.globalAttributes = GlobalAttributesImpl.from(request.getServletContext());
         this.pathInfo = new PathInfo(request.getContextPath(), request.getPathInfo(), globalAttributes.defaultPath());
-        this.paramInfo = paramInfo(request);
+        Map<String, String[]> parameters = new HashMap<>(request.getParameterMap());
+        List<UploadedFile> files = new ArrayList<>();
+        if (isMultipart(request.getContentType())) {
+            readParts(request, parameters, files);
+        }
+        this.paramInfo = new ParamInfo(parameters);
+        this.uploads = List.copyOf(files);
         this.dispatcherType = request.getDispatcherType();
     }
 
-    private ParamInfo paramInfo(HttpServletRequest req) {
-        Map<String, String[]> parameterMap = new HashMap<>();
-        parameterMap.putAll(req.getParameterMap());
-        /*
-         * Multipart form data
-         */
-        final String contentType = req.getContentType();
-        if (contentType != null
-                && contentType.regionMatches(true, 0, MULTIPART_FORM_DATA, 0, MULTIPART_FORM_DATA.length())) {
-            try {
-                for (Part part : req.getParts()) {
-                    try (InputStreamReader streamReader =
-                            new InputStreamReader(part.getInputStream(), StandardCharsets.UTF_8)) {
-                        try (BufferedReader bufferedReader = new BufferedReader(streamReader)) {
-                            final String value = bufferedReader.lines().collect(Collectors.joining("\n"));
-                            parameterMap.put(part.getName(), new String[] {value});
-                        }
-                    }
+    /**
+     * A multipart body: its text fields join the parameters, its files become uploads. A file input left empty sends a
+     * part with no file name and no bytes, which is neither.
+     */
+    private static void readParts(
+            HttpServletRequest request, Map<String, String[]> parameters, List<UploadedFile> files) {
+        try {
+            for (Part part : request.getParts()) {
+                String submittedName = part.getSubmittedFileName();
+                if (submittedName == null) {
+                    parameters.put(part.getName(), new String[] {text(part)});
+                } else if (!submittedName.isEmpty() || part.getSize() > 0) {
+                    files.add(new PartUpload(part));
                 }
-            } catch (ServletException e) {
-                log.error(e.getMessage(), e);
-            } catch (IOException e) {
-                log.error(e.getMessage(), e);
             }
+        } catch (ServletException | IOException e) {
+            log.warn("The multipart body could not be read: {}", e.getMessage());
         }
-        return new ParamInfo(parameterMap);
+    }
+
+    private static String text(Part part) throws IOException {
+        try (InputStream in = part.getInputStream()) {
+            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        }
+    }
+
+    private static boolean isMultipart(String contentType) {
+        return contentType != null
+                && contentType.regionMatches(true, 0, MULTIPART_FORM_DATA, 0, MULTIPART_FORM_DATA.length());
     }
 
     @Override
@@ -167,6 +177,19 @@ public final class HttpRequestImpl implements HttpRequest {
     @Override
     public ParamInfo paramInfo() {
         return paramInfo;
+    }
+
+    @Override
+    public Optional<UploadedFile> upload(String fieldName) {
+        Objects.requireNonNull(fieldName, "fieldName");
+        return uploads.stream()
+                .filter(file -> file.fieldName().equals(fieldName))
+                .findFirst();
+    }
+
+    @Override
+    public List<UploadedFile> uploads() {
+        return uploads;
     }
 
     @Override

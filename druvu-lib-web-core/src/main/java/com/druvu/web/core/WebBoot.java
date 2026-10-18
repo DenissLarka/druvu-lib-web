@@ -105,6 +105,7 @@ public final class WebBoot {
             context.setAttribute(
                     ContextVars.HTTP_DEFAULT, config.routes().getFirst().url());
             config.authConfig().ifPresent(auth -> context.setAttribute(ContextVars.AUTH_CONFIG, auth));
+            context.setAttribute(ContextVars.UPLOAD_LIMIT, config.uploadLimit());
             context.setAttribute(ContextVars.WS_OPENED, Collections.newSetFromMap(new ConcurrentHashMap<>()));
         }
 

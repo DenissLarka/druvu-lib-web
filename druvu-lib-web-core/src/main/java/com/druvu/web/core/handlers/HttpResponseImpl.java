@@ -1,11 +1,13 @@
 package com.druvu.web.core.handlers;
 
 import com.druvu.web.api.config.Route;
+import com.druvu.web.api.handlers.DownloadFile;
 import com.druvu.web.api.handlers.GlobalAttributes;
 import com.druvu.web.api.handlers.HttpHandler;
 import com.druvu.web.api.handlers.HttpResponse;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import lombok.SneakyThrows;
@@ -84,6 +86,32 @@ public final class HttpResponseImpl implements HttpResponse {
             res.flushBuffer();
         } catch (IOException e) {
             log.error(e.getMessage(), e);
+        }
+    }
+
+    /** The length is read before anything is sent, so a file gone from disk fails as an error, not a short download. */
+    @Override
+    public void commit(DownloadFile file) {
+        Objects.requireNonNull(file, "file");
+        long length = lengthOf(file);
+        res.setStatus(HttpServletResponse.SC_OK);
+        res.setContentType(file.contentType());
+        res.setHeader("Content-Disposition", ContentDisposition.attachment(file.filename()));
+        res.setContentLengthLong(length);
+        try {
+            file.writeTo(res.getOutputStream());
+            res.flushBuffer();
+        } catch (IOException e) {
+            // Mostly a browser that went away mid-download: the answer is under way, so there is nobody left to tell.
+            log.warn("The download of {} ended early: {}", file.filename(), e.getMessage());
+        }
+    }
+
+    private static long lengthOf(DownloadFile file) {
+        try {
+            return file.length();
+        } catch (IOException e) {
+            throw new UncheckedIOException("The download " + file.filename() + " cannot be read", e);
         }
     }
 

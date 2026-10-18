@@ -8,6 +8,7 @@ package com.druvu.web.api.handlers;
  * response.commit("application/json", json);                 // 200 with a body
  * response.header("Allow", "POST").commit(405);              // a status alone, after its header
  * response.sendRedirect(AccountHandler.class);               // 302 to that handler's route
+ * response.commit(DownloadFile.of(installer));               // a file for the browser to save
  * }</pre>
  *
  * @author Deniss Larka <br>
@@ -30,6 +31,12 @@ public interface HttpResponse {
 
     /** Commits 200 with this content type and body, written as UTF-8. */
     void commit(String contentType, String body);
+
+    /**
+     * Commits 200 with this file for the browser to save under its name: its content type, its length, and a
+     * {@code Content-Disposition} that carries any file name intact.
+     */
+    void commit(DownloadFile file);
 
     /** Answers with a redirect to this page, through the container. */
     void sendRedirect(String page);

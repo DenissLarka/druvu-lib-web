@@ -43,7 +43,7 @@ public class ContextCreator {
 
         // Core servlets
         List<Consumer<ServletContextHandler>> setups = new ArrayList<>();
-        setups.add(new DispatcherServletSetup());
+        setups.add(new DispatcherServletSetup(webConfig.uploadLimit()));
         if (base.isPresent()) {
             setups.add(new DefaultServletSetup(webConfig.staticPaths()));
         } else {

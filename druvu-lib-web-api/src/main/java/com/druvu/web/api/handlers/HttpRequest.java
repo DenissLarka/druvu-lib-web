@@ -2,6 +2,7 @@ package com.druvu.web.api.handlers;
 
 import com.druvu.web.api.auth.AuthUserIdentity;
 import jakarta.servlet.DispatcherType;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -24,8 +25,17 @@ public interface HttpRequest {
     /** The URL's segments, typed. */
     PathInfo pathInfo();
 
-    /** Query and form parameters, typed. */
+    /** Query and form parameters, typed; of a multipart form, the text fields: its files are {@link #uploads()}. */
     ParamInfo paramInfo();
+
+    /**
+     * The file sent under this form field in a {@code multipart/form-data} body, or empty when none came; the first
+     * when several came under one name.
+     */
+    Optional<UploadedFile> upload(String fieldName);
+
+    /** Every file of a {@code multipart/form-data} body, in the order sent; empty for any other request. */
+    List<UploadedFile> uploads();
 
     /**
      * The HTTP method, typed; {@link HttpMethod#OTHER} for a token outside the nine, which {@link #methodName()} has.
