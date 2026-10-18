@@ -1,0 +1,4 @@
+# Node and npm, installed here by frontend-maven-plugin
+node/
+# Packages, installed by npm ci
+node_modules/

@@ -7,6 +7,7 @@ package com.druvu.web.api.handlers;
  * <pre>{@code
  * response.commit("application/json", json);                 // 200 with a body
  * response.header("Allow", "POST").commit(405);              // a status alone, after its header
+ * response.sendRedirect(AccountHandler.class);               // 302 to that handler's route
  * }</pre>
  *
  * @author Deniss Larka <br>
@@ -32,6 +33,14 @@ public interface HttpResponse {
 
     /** Answers with a redirect to this page, through the container. */
     void sendRedirect(String page);
+
+    /**
+     * Answers with a redirect to this handler's route in this application: its path under the context path, so the
+     * redirect holds from any depth of the current URL and follows the handler when it is renamed.
+     *
+     * @throws IllegalArgumentException when the handler is not one of the application's routes
+     */
+    void sendRedirect(Class<? extends HttpHandler> handler);
 
     /** Answers with this status through the container's error handler, which renders its error page. */
     void sendError(int status);

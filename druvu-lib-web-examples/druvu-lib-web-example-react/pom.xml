@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>com.druvu</groupId>
+		<artifactId>druvu-lib-web-examples</artifactId>
+		<version>3.0.0-SNAPSHOT</version>
+	</parent>
+
+	<artifactId>druvu-lib-web-example-react</artifactId>
+
+	<name>DRUVU.COM / LIB / WEB / EXAMPLES / REACT</name>
+	<description>A React app on druvu-lib-web; the frontend builds inside the Maven build, with its own Node and npm.</description>
+
+	<properties>
+		<frontend-maven-plugin.version>2.0.2</frontend-maven-plugin.version>
+		<!-- The Node the build installs for itself: an LTS line; npm comes with it. -->
+		<node.version>v24.22.0</node.version>
+	</properties>
+
+	<dependencies>
+		<!-- The library: core brings api. No druvu-lib-web-php: the page is Vite's, not a template. -->
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>druvu-lib-web-core</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<!-- Logging -->
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>${slf4j.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-classic</artifactId>
+			<version>${logback.version}</version>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<!-- The frontend lives in src/main/frontend; Node is installed into its node/ directory, ignored by git. -->
+			<plugin>
+				<groupId>com.github.eirslett</groupId>
+				<artifactId>frontend-maven-plugin</artifactId>
+				<version>${frontend-maven-plugin.version}</version>
+				<configuration>
+					<workingDirectory>src/main/frontend</workingDirectory>
+				</configuration>
+				<executions>
+					<execution>
+						<id>install-node-and-npm</id>
+						<goals>
+							<goal>install-node-and-npm</goal>
+						</goals>
+						<configuration>
+							<nodeVersion>${node.version}</nodeVersion>
+						</configuration>
+					</execution>
+					<!-- npm ci installs exactly what package-lock.json lists, or fails; it never re-resolves. -->
+					<execution>
+						<id>npm-ci</id>
+						<goals>
+							<goal>npm</goal>
+						</goals>
+						<configuration>
+							<arguments>ci</arguments>
+						</configuration>
+					</execution>
+					<!-- Type-checks, then Vite writes the app into target/classes/webapp (vite.config.ts). -->
+					<execution>
+						<id>npm-run-build</id>
+						<goals>
+							<goal>npm</goal>
+						</goals>
+						<configuration>
+							<arguments>run build</arguments>
+						</configuration>
+					</execution>
+					<!-- Biome, read-only: formatting, lint and import order, at verify like Spotless; npm run fix repairs. -->
+					<execution>
+						<id>npm-run-check</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>npm</goal>
+						</goals>
+						<configuration>
+							<arguments>run check</arguments>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<!-- An executable uber jar, as for the other examples: `java -jar target/druvu-lib-web-example-react-*.jar`. -->
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<version>${spring-boot.version}</version>
+				<executions>
+					<execution>
+						<id>uber-jar</id>
+						<goals>
+							<goal>repackage</goal>
+						</goals>
+						<configuration>
+							<mainClass>com.druvu.web.example.react.ReactExample</mainClass>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>

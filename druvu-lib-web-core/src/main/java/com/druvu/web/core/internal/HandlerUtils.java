@@ -52,13 +52,15 @@ public class HandlerUtils {
             }
         }
         HttpRequest req = new HttpRequestImpl(httpServletRequest, user);
-        HttpResponse resp = new HttpResponseImpl(httpServletResponse);
+        HttpResponse resp =
+                new HttpResponseImpl(httpServletResponse, httpServletRequest.getContextPath(), globalAttributes);
         return Optional.of(new HttpCall(req, resp));
     }
 
+    @SneakyThrows
     private static Optional<HttpCall> refused(HttpServletResponse response, int status) {
         if (!response.isCommitted()) {
-            new HttpResponseImpl(response).sendError(status);
+            response.sendError(status);
         }
         return Optional.empty();
     }

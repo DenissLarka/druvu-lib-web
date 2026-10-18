@@ -38,6 +38,7 @@
 	<modules>
 		<module>druvu-lib-web-example-web</module>
 		<module>druvu-lib-web-example-mcp</module>
+		<module>druvu-lib-web-example-react</module>
 	</modules>
 
 </project>

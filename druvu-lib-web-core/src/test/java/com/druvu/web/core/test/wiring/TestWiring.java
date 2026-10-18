@@ -10,6 +10,7 @@ import com.druvu.web.api.config.WebConfig;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import java.io.IOException;
+import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -57,6 +58,9 @@ public class TestWiring {
                 .route(Route.forEveryone(BodyHandler.class))
                 .route(Route.forEveryone(HelloHandler.class))
                 .route(Route.forEveryone(JsonHandler.class))
+                .route(Route.forEveryone(RedirectHandler.class))
+                .route(Route.forEveryone(TypedRedirectHandler.class))
+                .route(Route.forEveryone(StrayRedirectHandler.class))
                 .route(Route.forSignedIn(SecretHandler.class, PERMISSION))
                 .route(Route.forSignedIn(ProfileHandler.class))
                 .route(Route.forEveryone(FormHandler.class))
@@ -109,6 +113,28 @@ public class TestWiring {
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(contentType(response)).startsWith("application/json");
         assertThat(response.body()).isEqualTo("{\"ok\":true}");
+    }
+
+    @Test
+    public void aRedirectEndsTheHandlerAndNoTemplateRuns() {
+        assertThat(redirectTarget(get("/redirect"))).isEqualTo("/t/plain");
+    }
+
+    @Test
+    public void aRedirectToAHandlerGoesToItsRouteUnderTheContextPath() {
+        assertThat(redirectTarget(get("/typed-redirect"))).isEqualTo("/t/plain");
+    }
+
+    @Test
+    public void aRedirectToAHandlerHoldsFromADeeperPath() {
+        assertThat(redirectTarget(get("/typed-redirect/42/edit"))).isEqualTo("/t/plain");
+    }
+
+    @Test
+    public void aRedirectToAHandlerThatIsNoRouteIsRefused() {
+        HttpResponse<String> response = get("/stray-redirect");
+        assertThat(response.statusCode()).isEqualTo(500);
+        assertThat(response.headers().firstValue("location")).isEmpty();
     }
 
     @Test
@@ -301,6 +327,13 @@ public class TestWiring {
 
     private static String contentType(HttpResponse<String> response) {
         return response.headers().firstValue("content-type").orElse("");
+    }
+
+    /** Where a redirect sends the browser; a relative Location stays relative, so it cannot pass as right. */
+    private static String redirectTarget(HttpResponse<String> response) {
+        assertThat(response.statusCode()).isEqualTo(302);
+        return URI.create(response.headers().firstValue("location").orElseThrow())
+                .getPath();
     }
 
     /** Every test user has the password {@code pw}. */

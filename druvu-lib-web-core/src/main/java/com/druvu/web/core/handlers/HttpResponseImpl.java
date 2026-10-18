@@ -1,8 +1,9 @@
 package com.druvu.web.core.handlers;
 
+import com.druvu.web.api.config.Route;
+import com.druvu.web.api.handlers.GlobalAttributes;
 import com.druvu.web.api.handlers.HttpHandler;
 import com.druvu.web.api.handlers.HttpResponse;
-import com.druvu.web.api.utils.HandlerNameConvention;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -10,25 +11,42 @@ import java.util.Objects;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
-/** @author Deniss Larka on 09 June 2024 */
+/**
+ * The servlet response behind {@link HttpResponse}. It also knows the context path and the application's routes, which
+ * a redirect to a handler needs to build that handler's path.
+ *
+ * @author Deniss Larka on 09 June 2024
+ */
 @Slf4j
 public final class HttpResponseImpl implements HttpResponse {
 
     private final HttpServletResponse res;
+    private final String contextPath;
+    private final GlobalAttributes globalAttributes;
 
-    public HttpResponseImpl(HttpServletResponse res) {
+    public HttpResponseImpl(HttpServletResponse res, String contextPath, GlobalAttributes globalAttributes) {
         this.res = Objects.requireNonNull(res);
+        this.contextPath = Objects.requireNonNull(contextPath, "contextPath");
+        this.globalAttributes = Objects.requireNonNull(globalAttributes, "globalAttributes");
     }
 
+    /** The container's redirect commits the response, so the dispatcher does not go on to a template after it. */
+    @SneakyThrows
     @Override
     public void sendRedirect(String page) {
-        res.resetBuffer();
-        res.setHeader("Location", page);
-        res.setStatus(HttpServletResponse.SC_MOVED_TEMPORARILY);
+        res.sendRedirect(page);
     }
 
-    public void sendRedirect(Class<? extends HttpHandler> page) {
-        sendRedirect(HandlerNameConvention.translate(page));
+    /** The path comes from the registered route, not from the class name, so it is the URL the route really answers. */
+    @Override
+    public void sendRedirect(Class<? extends HttpHandler> handler) {
+        Objects.requireNonNull(handler, "handler");
+        Route<?> route = globalAttributes.routes().values().stream()
+                .filter(candidate -> handler.equals(candidate.handlerClass()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "No route for " + handler.getName() + ": a redirect goes to one of the application's routes"));
+        sendRedirect(contextPath + "/" + route.url());
     }
 
     @SneakyThrows

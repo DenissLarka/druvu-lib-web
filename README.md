@@ -62,11 +62,15 @@ boot.start("/myapp");
 > [!TIP]
 > `./Start-Example.ps1` runs the demo site, which carries a page per feature family —
 > `/php-basics`, `/php-loops` and `/php-data` — plus `/account` behind a sign-in (`user` / `pass`).
-> `./Start-Example.ps1 mcp` runs the other example, an MCP server for machines, and prints its token.
+> `./Start-Example.ps1 mcp` runs an MCP server for machines and prints its token; `./Start-Example.ps1 react` runs a
+> React app, built by Vite inside the Maven build, on `http://localhost:8083/`.
 
 ---
 
 ## Quick Start
+
+Add `druvu-lib-web-core` and `druvu-lib-web-php` (the template engine) to your build; both come from GitHub Packages,
+see [Installation](#installation). The library needs Java 25 or newer.
 
 ### 1. Write the page
 
@@ -88,6 +92,13 @@ A handler's class name gives it both its URL and its template: `HomeHandler` ans
 No annotations, no routing table. The first route given to `WebConfig` also answers the context root.
 
 ```java
+// src/main/java/com/example/HomeHandler.java
+package com.example;
+
+import com.druvu.web.api.handlers.HttpHandler;
+import com.druvu.web.api.handlers.HttpRequest;
+import com.druvu.web.api.handlers.HttpResponse;
+
 public class HomeHandler implements HttpHandler {
     @Override
     public void handle(HttpRequest request, HttpResponse response) {
@@ -102,19 +113,42 @@ public class HomeHandler implements HttpHandler {
 ### 3. Boot the server
 
 ```java
-WebBoot boot = new WebBoot(WebConfig.builder()
-    .port(8080)
-    .route(Route.forEveryone(HomeHandler.class))
-    .authConfig(AuthConfig.builder()
-        .basicAuth()
-        .user("demo", "demo")
-        .build())
-    .build());
+// src/main/java/com/example/App.java
+package com.example;
 
-boot.start("/app");
+import com.druvu.web.api.auth.AuthConfig;
+import com.druvu.web.api.config.Route;
+import com.druvu.web.api.config.WebConfig;
+import com.druvu.web.core.WebBoot;
+
+public class App {
+    public static void main(String[] args) {
+        WebBoot boot = new WebBoot(WebConfig.builder()
+            .port(8080)
+            .route(Route.forEveryone(HomeHandler.class))
+            .authConfig(AuthConfig.builder()
+                .basicAuth()
+                .user("demo", "demo")
+                .build())
+            .build());
+
+        boot.start("/app");  // the context path; start("/") serves the application at the server's root
+    }
+}
 ```
 
-That's it. Open `http://localhost:8080/app/home` and you're live.
+That's it. Run `App` and open `http://localhost:8080/app/home`.
+
+### Where the classes live
+
+| Package | Classes |
+|---|---|
+| `com.druvu.web.core` | `WebBoot` |
+| `com.druvu.web.api.config` | `WebConfig`, `Route` |
+| `com.druvu.web.api.handlers` | `HttpHandler`, `HttpRequest`, `HttpResponse`, `HttpMethod`, `PathInfo`, `ParamInfo`, `GlobalAttributes`, `WebSocketHandler` (its `Session` and `Sessions` are nested in it) |
+| `com.druvu.web.api.auth` | `AuthConfig`, `BearerAuthentication`, `OpenIdAuthentication`, `TokenStore`, `PermissionStore`, `ApiTokens`, `AuthUserIdentity` |
+| `com.druvu.web.api.plugin` | `TemplateEnginePlugin` |
+| `com.druvu.php` | `PhpEngine`, `TemplateLoader`, `PhpEngineConfig`, `HostRequest`: the engine on its own, artifact `druvu-lib-php` |
 
 ---
 
@@ -247,12 +281,13 @@ implementation over a servlet.
 ## Module Architecture
 
 ```
-druvu-lib-php              The PHP 8 layout engine on its own: no dependencies, one exported package
-druvu-lib-web-api          Pure interfaces & contracts (no runtime dependencies)
-druvu-lib-web-core         Jetty 12 server, dispatcher, auth, WebSocket engine
-druvu-lib-web-php          The engine as a servlet: the plugin the core discovers via ServiceLoader
-druvu-lib-web-example-web  The demo site: PHP feature pages, w2ui grid, JSON, WebSocket, a page behind sign-in
-druvu-lib-web-example-mcp  An MCP server on a route for machines, JSON through druvu-lib-json, a token at boot
+druvu-lib-php                The PHP 8 layout engine on its own: no dependencies, one exported package
+druvu-lib-web-api            Pure interfaces & contracts (no runtime dependencies)
+druvu-lib-web-core           Jetty 12 server, dispatcher, auth, WebSocket engine
+druvu-lib-web-php            The engine as a servlet: the plugin the core discovers via ServiceLoader
+druvu-lib-web-example-web    The demo site: PHP feature pages, w2ui grid, JSON, WebSocket, a page behind sign-in
+druvu-lib-web-example-mcp    An MCP server on a route for machines, JSON through druvu-lib-json, a token at boot
+druvu-lib-web-example-react  A React app (Vite, TypeScript) built inside the Maven build, served as static files
 ```
 
 The API module defines all contracts. The core module provides the Jetty-based implementation. The PHP engine is discovered at boot via `ServiceLoader`, so the core never depends on it directly.
@@ -624,7 +659,10 @@ that constant back into a lookup; nothing here pretends it already is one.
 | `paramInfo()`        | Query/form parameters with typed getters |
 | `user()`             | Authenticated user identity (if any)     |
 | `globalAttributes()` | Application-scoped objects               |
-| `method()`           | The method as `HttpMethod`; `isGet()`, `isPost()`; `methodName()` for the token |
+| `method()`           | The method as `HttpMethod`, an enum: `GET`, `POST`, ... |
+| `isGet()`, `isPost()` | On the request itself: `request.isPost()` is true for a POST |
+| `methodName()`       | The method as it came on the wire        |
+| `setAttribute(name, value)` | Hands a value to the template, where it is `$name` |
 | `contentType()`      | Request content type                     |
 | `header(name)`       | A request header, if present             |
 | `body()`             | The body as text, UTF-8 unless declared; empty for a form body |
@@ -644,9 +682,11 @@ request.pathInfo().withContextPath("other");             // "/myapp/other"
 
 ```java
 // URL: /search?q=java&page=2
-request.paramInfo().get("q");                            // "java"
+request.paramInfo().get("q");                               // "java"
+request.paramInfo().get("sort");                            // null: absent, and a blank value counts as absent
+request.paramInfo().getOptional("q");                       // Optional["java"]
 request.paramInfo().getOptional("page", Integer::parseInt); // Optional<Integer>(2)
-request.paramInfo().getOrDefault("sort", "relevance");   // "relevance"
+request.paramInfo().getOrDefault("sort", "relevance");      // "relevance"
 ```
 
 ### HttpResponse
@@ -657,7 +697,8 @@ request.paramInfo().getOrDefault("sort", "relevance");   // "relevance"
 | `commit(contentType, body)` | Commit 200 with this body, UTF-8; no template runs |
 | `commit(status, contentType, body)` | The same with another status |
 | `commit(status)` | Commit a bare status: 202, 204, 405 with `Allow` set before |
-| `sendRedirect(url)` | HTTP redirect |
+| `sendRedirect(url)` | Redirect (302) to this URL; no template runs |
+| `sendRedirect(AccountHandler.class)` | Redirect (302) to that handler's route in this application, from any depth; a class that is no route throws `IllegalArgumentException` |
 | `sendError(code)` | Send error status through the error handler |
 | `isCommitted()` | Check if response was already written |
 

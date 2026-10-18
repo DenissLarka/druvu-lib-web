@@ -2,6 +2,7 @@
 # Run one of the examples.
 #   ./Start-Example.ps1          the demo site (druvu-lib-web-example-web) on http://localhost:8081/web-test/
 #   ./Start-Example.ps1 mcp      the MCP server (druvu-lib-web-example-mcp) on http://localhost:8082/mcp
+#   ./Start-Example.ps1 react    the React app (druvu-lib-web-example-react) on http://localhost:8083/
 #
 # The project builds on JDK 25 (pom java.version; the enforcer refuses any other line, because the
 # formatter cannot run on newer javac internals). When Use-Jdk25.ps1, the session-scoped JDK switcher
@@ -9,7 +10,7 @@
 # active java must already be a JDK 25. Keep this file ASCII: PowerShell 5.1 reads a BOM-less file
 # as ANSI, so one non-ASCII character in a comment breaks the script there and nowhere else.
 param(
-	[ValidateSet('web', 'mcp')]
+	[ValidateSet('web', 'mcp', 'react')]
 	[string]$Example = 'web'
 )
 
@@ -54,6 +55,12 @@ try {
 			Start-Process "http://localhost:8081/web-test/"
 		} | Out-Null
 		Write-Host "Running the demo site on http://localhost:8081/web-test/ ..." -ForegroundColor Cyan
+	} elseif ($Example -eq 'react') {
+		Start-Job -ScriptBlock {
+			Start-Sleep -Seconds 3
+			Start-Process "http://localhost:8083/"
+		} | Out-Null
+		Write-Host "Running the React app on http://localhost:8083/ ..." -ForegroundColor Cyan
 	} else {
 		Write-Host "Running the MCP server on http://localhost:8082/mcp - the token is printed below." -ForegroundColor Cyan
 	}
