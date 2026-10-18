@@ -802,14 +802,24 @@ Go to [GitHub Settings > Developer settings > Personal access tokens](https://gi
 <dependency>
     <groupId>com.druvu</groupId>
     <artifactId>druvu-lib-web-core</artifactId>
-    <version>2.0.0</version>
+    <version>3.0.0</version>
 </dependency>
 <!-- PHP template engine (loaded automatically via ServiceLoader) -->
 <dependency>
     <groupId>com.druvu</groupId>
     <artifactId>druvu-lib-web-php</artifactId>
-    <version>2.0.0</version>
+    <version>3.0.0</version>
     <scope>runtime</scope>
+</dependency>
+```
+
+The engine alone, without a server ([The engine on its own](#the-engine-on-its-own)):
+
+```xml
+<dependency>
+    <groupId>com.druvu</groupId>
+    <artifactId>druvu-lib-php</artifactId>
+    <version>3.0.0</version>
 </dependency>
 ```
 
