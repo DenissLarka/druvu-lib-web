@@ -21,7 +21,7 @@
 		<!-- spring-boot-maven-plugin:repackage turns an example into a `java -jar` uber jar; no Spring in the examples. -->
 		<spring-boot.version>4.1.1</spring-boot.version>
 		<!-- The examples' console log; the library itself ships no logging backend, only slf4j-api. -->
-		<logback.version>1.6.5</logback.version>
+		<logback.version>1.6.6</logback.version>
 	</properties>
 
 	<dependencyManagement>
