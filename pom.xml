@@ -22,8 +22,9 @@
 		<assertj.version>3.27.7</assertj.version>
 		<slf4j.version>2.0.20</slf4j.version>
 
-		<spotless-maven-plugin.version>3.11.0</spotless-maven-plugin.version>
-		<palantir-java-format.version>2.90.0</palantir-java-format.version>
+		<spotless-maven-plugin.version>3.12.0</spotless-maven-plugin.version>
+		<!-- the palantir-java-format fork that runs on JDK 27: https://github.com/openjavaformat/open-java-format -->
+		<open-java-format.version>21.0.2</open-java-format.version>
 
 		<druvu-lib-loader.version>2.0.0</druvu-lib-loader.version>
 
@@ -211,7 +212,8 @@
 				<configuration>
 					<java>
 						<palantirJavaFormat>
-							<version>${palantir-java-format.version}</version>
+							<groupArtifact>dev.openjavaformat:open-java-format</groupArtifact>
+							<version>${open-java-format.version}</version>
 							<style>PALANTIR</style>
 							<formatJavadoc>true</formatJavadoc>
 						</palantirJavaFormat>

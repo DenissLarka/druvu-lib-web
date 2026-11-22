@@ -58,13 +58,12 @@ final class MathFunctions {
         if (Double.isNaN(value) || Double.isInfinite(value)) {
             return value;
         }
-        RoundingMode rounding =
-                switch (mode) {
-                    case 2 -> RoundingMode.HALF_DOWN;
-                    case 3 -> RoundingMode.HALF_EVEN;
-                    case 4 -> RoundingMode.UP;
-                    default -> RoundingMode.HALF_UP;
-                };
+        RoundingMode rounding = switch (mode) {
+            case 2 -> RoundingMode.HALF_DOWN;
+            case 3 -> RoundingMode.HALF_EVEN;
+            case 4 -> RoundingMode.UP;
+            default -> RoundingMode.HALF_UP;
+        };
         return BigDecimal.valueOf(value).setScale(precision, rounding).doubleValue();
     }
 }

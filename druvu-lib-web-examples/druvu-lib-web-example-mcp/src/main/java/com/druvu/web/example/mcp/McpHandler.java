@@ -18,11 +18,10 @@ public final class McpHandler implements HttpHandler {
 
     @Override
     public void handle(HttpRequest request, HttpResponse response) {
-        Reply reply =
-                switch (McpTransport.read(request)) {
-                    case McpCall call -> SERVER.answer(call);
-                    case Reply early -> early;
-                };
+        Reply reply = switch (McpTransport.read(request)) {
+            case McpCall call -> SERVER.answer(call);
+            case Reply early -> early;
+        };
         reply.writeTo(response);
     }
 }
